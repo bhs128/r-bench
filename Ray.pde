@@ -10,13 +10,13 @@ class Ray {
 
   void draw(int strength) {
     if(strength == 3) {
-      stroke(255,0,0,65);
+      stroke(255,0,0,128);
     } else if (strength == 2) {
-      stroke(0,0,255,64);
+      stroke(0,0,255,128);
     } else if(strength == 1) {
-      stroke(0,255,0,64);
+      stroke(0,255,0,128);
     } else {
-      stroke(255,230,104,128);
+      stroke(255,230,104,192);
     }
     line(map_x(start_x), map_y(start_y), map_x(end_x), map_y(end_y));
   }
@@ -30,7 +30,7 @@ class Ray {
   double get_y2() { return end_y; }
   
   boolean is_vertical() {
-    if( abs( (float)(end_x - start_x) ) <= 0.01) {
+    if( abs( (float)(end_x - start_x) ) <= 0.0001) {
       return true;
     } else {
       return false;

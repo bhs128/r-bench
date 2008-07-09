@@ -13,13 +13,15 @@ class Reflector {
   }
   
   double func(double x) { //one (or more) equations describing the reflector shape
-    return a*cosh(x)-a; 
-    //return a*(x*x);
+    return a*cosh(x)-a; // Catenary
+    //return a*(x*x); // Parabola
+    //return -1 * sqrt((float) (a*a-x*x))+a; // semicircle
   }
 
   double d_func(double x) { // the derivative function of func()
-    return a*sinh(x);
-    //return a*2*x;
+    return a*sinh(x); // Catenary
+    //return a*2*x; // Parabola
+    //return x / sqrt((float) (a*a-x*x));// semicircle
   }
   
   Coord intersection_coord(Ray a_ray) {
@@ -46,26 +48,30 @@ class Reflector {
           cur_sign = sign(func(x) - (am*(x-ax1)+ay1));
           //stroke(255,0,0);
           //line(map_x(x), map_y(0.0), map_x(x), map_y(func(x) - (am*(x-ax1)+ay1)) );
-          if(cur_sign != last_sign) { // change in sign means interection
-            if(xp1 <= -1000.0) { // xp1 is empty still, and it isn't the start point
-              xp1 = x;
-            } else {
-              xp2 = x;
+          if(cur_sign != last_sign) { // change in sign means an interection
+            if(x> x_min && x < x_max) { // is the intersection on the reflector?
+              if(xp1 <= -1000.0) { // xp1 is empty , fill it- otherwise fill xp2
+                xp1 = x;
+              } else {
+                xp2 = x;
+              }
             }
           }
           last_sign = cur_sign;
         }
-      } else {
+      } else { // ray traveling right to left
         last_sign = sign(func(ax1-0.001) - (am*((ax1-0.001)-ax1)+ay1) );
         for(double x = (ax1-0.01); x >= x_min; x -= range/1000.0) {
           cur_sign = sign(func(x) - (am*(x-ax1)+ay1));
           //stroke(255,0,0);
           //line(map_x(x), map_y(0.0), map_x(x), map_y(func(x) - (am*(x-ax1)+ay1)) );
-          if(cur_sign != last_sign) { // change in sign means interection
-            if(xp1 <= -1000.0) { // xp1 is empty still, and it isn't the start point
+          if(cur_sign != last_sign) { // change in sign means an interection
+            if(x> x_min && x < x_max) { // is the intersection on the reflector?
+            if(xp1 <= -1000.0) { // xp1 is empty , fill it- otherwise fill xp2
               xp1 = x;
             } else {
               xp2 = x;
+            }
             }
           }
           last_sign = cur_sign;
@@ -73,13 +79,13 @@ class Reflector {
       }
       
       // the if() below needs to get the intersection point
-      if(xp2 <= -1000.0) { // xp1 is the only intersection
+      if(xp2 <= -1000.0) { // xp2 is still empty- xp1 is the only intersection
         xi = xp1;
         yi = func(xp1);
-      } else { // threre are two, pick closest
+      } else { // there are two
         dist_xp1 = sqrt(pow((float) (ax1 - xp1),2) + pow((float) (ay1 - func(xp1)), 2));
         dist_xp2 = sqrt(pow((float) (ax1 - xp2),2) + pow((float) (ay1 - func(xp2)), 2));
-        if(dist_xp1 < dist_xp2 && (abs((float)dist_xp1) <= 0.01)) {
+        if(dist_xp1 < dist_xp2) { // use the closer of the two
           xi = xp1;
           yi = func(xp1);
         } else {
@@ -106,6 +112,26 @@ class Reflector {
       y1 = y2;
     }
   }
+  boolean enters(Ray a_ray, float theta) {
+    double ax1, ay1, ax2, ay2; //a_ray's start points
+    double lx, rx; 
+    ax1 = a_ray.get_x1();
+    ay1 = a_ray.get_y1();
+    ax2 = a_ray.get_x2();
+    ay2 = a_ray.get_y2();
+
+    lx = (ay1 - gate_line.get_y1()) / tan(theta);
+    rx = (ay1 - gate_line.get_y2()) / tan(theta);
+    
+    if(ay1 < gate_line.get_y1() && ay1 < gate_line.get_y2()) { // can't enter if you start below the gate line
+      return false;
+    } 
+    if(ax1 > lx && ax1 < rx) {
+      return true;
+    } else {
+      return false;
+    }
+  }
   
   boolean intersects(Ray a_ray) {
     if(a_ray.is_vertical()) {
@@ -115,8 +141,12 @@ class Reflector {
       if(a_ray.get_x1() > x_max) {
         return false;
       }   
-      return true; 
-    } else {
+      if( a_ray.get_y1() > func(a_ray.get_x1()) && a_ray.get_y2() < func(a_ray.get_x1()) ) { // does it start above and end below?
+        return true; 
+      } else {
+        return false;
+      }
+    } else { // not a vertical ray..
       double ax1, ay1, ax2, ay2; //a_ray's start points
       int last_sign, cur_sign;
       double am = a_ray.get_slope();
@@ -126,13 +156,14 @@ class Reflector {
       ax2 = a_ray.get_x2();
       ay2 = a_ray.get_y2();
  
-
       if(ax1 < ax2) {
         last_sign = sign(func(ax1+0.01) - (am*((ax1+0.01)-ax1)+ay1) );
         for(double x = (ax1+0.01); x <= x_max; x += range/1000.0) {
           cur_sign = sign(func(x) - (am*(x-ax1)+ay1));
           if(cur_sign != last_sign) { // change in sign means interection
-            return true;
+            if(x <= x_max && x >= x_min) {
+              return true;
+            }
           }
           last_sign = cur_sign;
         }
@@ -141,7 +172,9 @@ class Reflector {
         for(double x = (ax1-0.01); x >= x_min; x -= range/1000.0) {
           cur_sign = sign(func(x) - (am*(x-ax1)+ay1));
           if(cur_sign != last_sign) { // change in sign means interection
-            return true;
+            if(x <= x_max && x >= x_min) {
+              return true;
+            }
           }
           last_sign = cur_sign;
         }
@@ -167,8 +200,8 @@ class Reflector {
       float shift = (ax1>0)?PI/2:-1*PI/2;
       float theta = atan((float)d_func(ax1))*2-shift;
       double r_slope = tan(theta);
-      double d_x = 20*cos(theta);
-      double d_y = 20*sin(theta);
+      double d_x = 10*cos(theta);
+      double d_y = 10*sin(theta);
       
       if(ax1<=0) {
         bx2 = ax1 + d_x;
