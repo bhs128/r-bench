@@ -6,6 +6,7 @@ class Bench {
   Ray[] output_array = new Ray[MAX_RAYS]; // final reflected rays
   int rb_idx = 0;
   Reflector r;
+  Receiver pipe;
   
   Bench(double px_per_unit, 
         int ul_x_px, int ul_y_px, 
@@ -34,6 +35,7 @@ class Bench {
     draw_graphpaper();  
     draw_rays();
     draw_reflector();
+    draw_receiver();
   }
   
   void draw_graphpaper() {
@@ -63,6 +65,12 @@ class Bench {
     }
   }
   
+  void draw_receiver() {
+    if(pipe != null) {
+      pipe.draw();
+    }  
+  }
+  
   void go() {
     for(int idx = 0; idx < MAX_RAYS; idx++) { // reset output array to null
       output_array[idx] = null;
@@ -72,6 +80,7 @@ class Bench {
     for(int ridx = 0; ridx < MAX_RAYS; ridx++) {
       if(input_array[ridx] != null) {
         Ray tmp = input_array[ridx].copy();
+        
         bounce( tmp );
       
         output_array[rb_idx] = tmp;
@@ -82,15 +91,49 @@ class Bench {
   
   void bounce(Ray a_ray) {
     Ray temp;
-    Coord pivot;
-
+    Coord pi = new Coord(0.0,0.0); // need to define to make java happy
+    Coord ri = new Coord(0.0,0.0); // need to define to make java happy
+    boolean go_reflect = false;
+    boolean go_receive = false;
+    
     if(r.intersects(a_ray)) {
+      ri = r.intersection_coord(a_ray);
+      go_reflect = true;
+    }
+    if(pipe.intersects(a_ray)) {
+       pi = pipe.intersection_coord(a_ray);
+       go_receive = true;
+    }
+    
+    // does ray intersect both receiver & reflector?    
+    if(go_receive && go_reflect) {      
+     
+      double pipe_dist = sqrt(pow((float) (a_ray.get_x1() - pi.getX()),2) + pow((float) (a_ray.get_y1() - pi.getY()), 2));
+      double ref_dist  = sqrt(pow((float) (a_ray.get_x1() - ri.getX()),2) + pow((float) (a_ray.get_y1() - ri.getY()), 2));
+      
+      // - which one does it hit first?
+      if(pipe_dist < ref_dist) {
+        go_reflect = false; // hit pipe first, don't reflect it
+      } else {
+        go_receive = false; // hit reflctor first, don't absorb it
+      }
+    }
+    
+    if(go_receive) {
+      // Ray stops at receiver
+      a_ray.set_x2(pi.getX());
+      a_ray.set_y2(pi.getY());
+      
+      pipe.got_hit();
+    }
+    
+    if(go_reflect) {
       temp = r.reflected_ray(a_ray);
-      pivot = r.intersection_coord(a_ray);
-      a_ray.set_x2(pivot.getX());
-      a_ray.set_y2(pivot.getY());
-      temp.set_x1(pivot.getX());
-      temp.set_y1(pivot.getY());
+
+      a_ray.set_x2(ri.getX());
+      a_ray.set_y2(ri.getY());
+      temp.set_x1(ri.getX());
+      temp.set_y1(ri.getY());
     
       bounce(temp);
    
@@ -166,6 +209,14 @@ class Bench {
   
   void add_reflector(double a, double f_min, double f_max) {
     r = new Reflector(a, f_min, f_max);
+  }
+  
+  void add_receiver(double x, double y, double r) {
+    pipe = new Receiver(x, y, r); 
+  }
+  
+  int receiver_hits() {
+    return pipe.get_hits();
   }
   
   double get_xmin() { return x_min; }

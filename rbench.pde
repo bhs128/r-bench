@@ -1,3 +1,4 @@
+PFont fontA;
 int MAX_RAYS = 1000;
 double RAY_SPACING = 0.0625;
 Reflector cat;
@@ -8,25 +9,40 @@ int x_min_px = 40;
 int x_max_px = 550;
 int y_min_px = 410;
 int y_max_px = 20;
+double f_min = -2.0;
+double f_max = 2.0;
+double zoom = 100.0;
 
 void setup() {
   size(640, 480);
   smooth();
+  fontA = loadFont("Ziggurat-HTF-Black-32.vlw");
+  textFont(fontA, 16);
   
-  b = new Bench(75.0, x_min_px, y_max_px, x_max_px, y_min_px, (x_max_px - x_min_px)/2, 390);
+  int center_px = (x_max_px - x_min_px)/2 + x_min_px;
+  double func_center = (f_max - f_min)/2.0 + f_min;
+  
+   // create Bench - Origin placed so that the screen is centered on the reflector
+  b = new Bench(zoom, x_min_px, y_max_px, 
+                x_max_px, y_min_px, 
+                center_px + (int) (func_center * zoom), 390);
   theta = 5.0;
 }
 
 void draw() { 
   b.add_directional_light(theta, 0.06125); // "set up the light"
-  b.add_reflector(.4, -2.5, 2.5); // "place the mirror"
+  b.add_reflector(.4, f_min, f_max); // "place the mirror"
+  b.add_receiver(0.0, 1.0, 0.125) ; // add receiver
   b.go(); // do the reflecting eg "turn on the lights"
   
   // <-- analyse the Bench here, after the calculating has been done.
-  
+
   b.draw(); // What does it look like?
   
   draw_frame(); // hide the overflow rays
+
+  fill(0);
+  text(b.receiver_hits(), x_max_px+10, 60);
   
   // <-- draw GUI elements here, on top of the frame.
  
