@@ -211,7 +211,7 @@ class Reflector {
         by2 = func(ax1) - d_y;
       }
       
-      return new Ray(bx1, by1, bx2, by2);
+      return new Ray(bx1, by1, bx2, by2, a_ray.get_pwr() + 1);
     } else { // not a vertical ray
       Coord r_start, r_end; // coords of reflected endpoints of a_ray
       Coord isect;
@@ -232,7 +232,7 @@ class Reflector {
       r_end = tangent.reflect_point(new Coord(ax2, ay2));
       
       // reflected start and end points are the reflected ray, return it-
-      return new Ray( r_start.getX(), r_start.getY(), r_end.getX(), r_end.getY() );
+      return new Ray( r_start.getX(), r_start.getY(), r_end.getX(), r_end.getY(), a_ray.get_pwr() + 1);
     }
   }
   

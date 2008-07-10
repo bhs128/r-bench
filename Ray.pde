@@ -1,5 +1,6 @@
 class Ray {
   double start_x, start_y, end_x, end_y;  
+  int pwr;
   
   Ray(double x1, double y1, double x2, double y2) {
     start_x = x1;
@@ -7,7 +8,15 @@ class Ray {
     end_x   = x2;
     end_y   = y2;
   } 
-
+  
+  Ray(double x1, double y1, double x2, double y2, int p) {
+    start_x = x1;
+    start_y = y1;
+    end_x   = x2;
+    end_y   = y2;
+    pwr = p;
+  } 
+  
   void draw(int strength) {
     if(strength == 3) {
       stroke(255,0,0,128);
@@ -21,13 +30,22 @@ class Ray {
     line(map_x(start_x), map_y(start_y), map_x(end_x), map_y(end_y));
   }
   void draw() {
-    line(map_x(start_x), map_y(start_y), map_x(end_x), map_y(end_y));
+    draw(pwr);
   }
   
-  double get_x1() { return start_x; }
-  double get_y1() { return start_y; }
-  double get_x2() { return end_x; }
-  double get_y2() { return end_y; }
+  void set_power(int p) {
+    pwr = p;
+  }
+  
+  Ray copy() {
+    return new Ray(start_x, start_y, end_x, end_y, pwr);
+  }
+  
+  double get_x1()  { return start_x; }
+  double get_y1()  { return start_y; }
+  double get_x2()  { return end_x; }
+  double get_y2()  { return end_y; }
+  int get_pwr() { return pwr; }
   
   boolean is_vertical() {
     if( abs( (float)(end_x - start_x) ) <= 0.0001) {
