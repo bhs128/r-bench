@@ -13,14 +13,14 @@ class Reflector {
   }
   
   double func(double x) { //one (or more) equations describing the reflector shape
-    return a*cosh(x)-a; // Catenary
-    //return a*(x*x); // Parabola
+    //return a*cosh(x)-a; // Catenary
+    return a*(x*x); // Parabola
     //return -1 * sqrt((float) (a*a-x*x))+a; // semicircle
   }
 
   double d_func(double x) { // the derivative function of func()
-    return a*sinh(x); // Catenary
-    //return a*2*x; // Parabola
+    //return a*sinh(x); // Catenary
+    return a*2*x; // Parabola
     //return x / sqrt((float) (a*a-x*x));// semicircle
   }
   

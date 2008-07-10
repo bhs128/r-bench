@@ -1,6 +1,7 @@
 PFont fontA;
 int MAX_RAYS = 1000;
 double RAY_SPACING = 0.0625;
+float[] days_data = new float[180];
 Reflector cat;
 Bench b;
 double theta;
@@ -11,7 +12,7 @@ double day_avg;
 int x_min_px = 40;
 int x_max_px = 600;
 int y_min_px = 410;
-int y_max_px = 20;
+int y_max_px = 60;
 double f_min = -2.5;
 double f_max = 2.5;
 double zoom = 100.0;
@@ -35,8 +36,8 @@ void setup() {
 
 void draw() { 
   b.add_directional_light(theta, 0.06125); // "set up the light"
-  b.add_reflector(.5, f_min, f_max); // "place the mirror"
-  b.add_receiver(0.0, 0.75, 0.125) ; // add receiver
+  b.add_reflector(.25, f_min, f_max); // "place the mirror"
+  b.add_receiver(-.125, 1.0, 0.125) ; // add receiver
   b.go(); // do the reflecting eg "turn on the lights"
   
   // <-- analyse the Bench here, after the calculating has been done.
@@ -44,14 +45,25 @@ void draw() {
   b.draw(); // What does it look like?
   
   draw_frame(); // hide the overflow rays
+
+  // draw GUI elements here, on top of the frame.
   cur_multi = (float) b.receiver_hits() / (.125 * 2.0 / .06125);
   total_multi += cur_multi;
   fill(0);
   text( "Multiplier: " + cur_multi, 40, 430);
   text( "Average: " + total_multi/(theta-4.0), 40, 450); 
   text( "Daily Average: " + day_avg, 40, 470);
-  // <-- draw GUI elements here, on top of the frame.
- 
+  days_data[(int) theta] = (float) cur_multi;
+  
+  for(int d_idx = 0; d_idx < 180; d_idx++) {
+    stroke(0);
+    fill(0);
+    if(days_data[d_idx] > 0.0) 
+      ellipse(map(d_idx, 0, 180, x_min_px, x_max_px), map(days_data[d_idx], 0, 20, y_max_px-2, 2), 1.0 , 1.0);
+  }
+  stroke(0,0,255);
+  line(map((float) theta, 0, 180, x_min_px, x_max_px), 2, map((float)theta, 0, 180, x_min_px, x_max_px), y_max_px-2);
+
   if(theta > 175.0) { // animate from 5 to 175 degrees and back again
     day_avg = total_multi/(theta-4.0);
     theta = 5.0;
