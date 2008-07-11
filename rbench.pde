@@ -37,7 +37,7 @@ void setup() {
 void draw() { 
   b.add_directional_light(theta, 0.06125); // "set up the light"
   b.add_reflector(.25, f_min, f_max); // "place the mirror"
-  b.add_receiver(-.125, 1.0, 0.125) ; // add receiver
+  b.add_receiver(0.0, 1.5, 0.125); // add receiver
   b.go(); // do the reflecting eg "turn on the lights"
   
   // <-- analyse the Bench here, after the calculating has been done.
