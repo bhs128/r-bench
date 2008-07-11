@@ -76,7 +76,7 @@ class Bench {
       output_array[idx] = null;
     }
     rb_idx = 0; // Rays Bounced Index is now zero again
-    
+    pipe.reset_hits();
     for(int ridx = 0; ridx < MAX_RAYS; ridx++) {
       if(input_array[ridx] != null) {
         Ray tmp = input_array[ridx].copy();

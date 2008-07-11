@@ -9,6 +9,9 @@ class Receiver {
     
     hits = 0;
   }
+  void reset_hits() {
+    hits = 0;  
+  }
   
   void got_hit() {
     hits++;
@@ -99,6 +102,9 @@ class Receiver {
   }
   
   void draw() {
+    if(dragging_pipe) {
+      fill(128);
+    }
     ellipseMode(RADIUS);
     ellipse(map_x(center_x), map_y(center_y), (float) (radius*zoom), (float) (radius*zoom));
   }
