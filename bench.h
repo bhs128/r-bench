@@ -2,6 +2,8 @@
 #define BENCH_H
 
 #include <QWidget>
+#include <QLineF>
+#include <QVector>
 
 class Bench : public QWidget
 {
@@ -10,7 +12,7 @@ class Bench : public QWidget
 public:
     Bench(QWidget *parent = 0);
 
-   // void setDuration(int secs);
+    void setRaySpacing(double s);
    // int duration() const;
     void draw(QPainter *painter);
 
@@ -22,6 +24,7 @@ protected:
     void mousePressEvent(QMouseEvent *event);
 
 private:
+   
    // QDateTime finishTime;
    // QTimer *updateTimer;
    // QTimer *finishTimer;
