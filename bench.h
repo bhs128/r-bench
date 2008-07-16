@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QLineF>
 #include <QVector>
+#include <QRect>
 
 class Bench : public QWidget
 {
@@ -13,6 +14,7 @@ public:
     Bench(QWidget *parent = 0);
 
     void setRaySpacing(double s);
+	void setTheta(double theta);
    // int duration() const;
     void draw(QPainter *painter);
 
@@ -24,7 +26,8 @@ protected:
     void mousePressEvent(QMouseEvent *event);
 
 private:
-   
+	void setLights(double theta);
+   QRectF window;
    // QDateTime finishTime;
    // QTimer *updateTimer;
    // QTimer *finishTimer;
