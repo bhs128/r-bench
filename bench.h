@@ -27,8 +27,9 @@ protected:
     void mousePressEvent(QMouseEvent *event);
 
 private:
+	void drawGrid(QPainter *painter);
 	void setLights(double theta);
-   QRectF window;
+	QRect  window;
    // QDateTime finishTime;
    // QTimer *updateTimer;
    // QTimer *finishTimer;

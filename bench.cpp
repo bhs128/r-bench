@@ -9,11 +9,12 @@
 
 double 	RaySpacing;
 double	Theta; // In degrees
+
 QVector<QLineF> InitialRays;
 QVector<QLineF> FinalRays;
 
 Bench::Bench(QWidget *parent) : QWidget(parent) {
-	window = QRectF(-5.0, 5.0, 10.0, 10.0);
+	window = QRect(-5, -5, 10, 10);
 	RaySpacing = 1.0;
 }
 
@@ -35,13 +36,16 @@ void Bench::mousePressEvent(QMouseEvent *event)
 
 void Bench::paintEvent(QPaintEvent * /* event */)
 {
+	QMatrix reflectionMatrix(1, 0, 0, -1, 0.0, 0.0);
     QPainter painter(this);
-    //painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setMatrix(reflectionMatrix);
+
+    painter.setRenderHint(QPainter::Antialiasing, true);
 
     //painter.setViewport((width() - side) / 2, (height() - side) / 2, side, side);
-    painter.setWindow((int) window.x(), (int) window.y(), (int) window.width(), (int) window.height() );
+    painter.setWindow(window);
 	setLights(Theta);
-	
+	drawGrid(&painter);	
     draw(&painter);
 }
 
@@ -51,8 +55,21 @@ void Bench::draw(QPainter *painter)
     QPen thinPen(niceYellow);
 	
     painter->setPen(thinPen);
+
     painter->drawLines(InitialRays); 
-	painter->drawRect(window);
+	//painter->drawRect(window);
+}
+
+void Bench::drawGrid(QPainter *painter) {
+	QColor niceBlue(0,0,255);
+    QPen   gridPen(niceBlue, 0.25);
+	painter->setPen(gridPen);
+	// Horizontal X-Axis
+	painter->drawLine( QLineF(window.left(), 0.0, window.x()+window.width(), 0.0) );
+	// Vertical Y-axis
+	painter->drawLine( QLineF(0.0, window.top(), 0.0, window.y()+window.height()) );
+	
+	painter->drawPoint(-1,-1);
 }
 
 void Bench::setLights(double theta) {
