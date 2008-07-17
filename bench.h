@@ -12,15 +12,16 @@ class Bench : public QWidget
 
 public:
     Bench(QWidget *parent = 0);
-
-    void setRaySpacing(double s);
-	void setTheta(double theta);
    // int duration() const;
     void draw(QPainter *painter);
 
-signals:
+//signals:
    // void timeout();
 
+public slots:
+	void setTheta(int theta);
+    void setRaySpacing(double s);
+	
 protected:
     void paintEvent(QPaintEvent *event);
     void mousePressEvent(QMouseEvent *event);

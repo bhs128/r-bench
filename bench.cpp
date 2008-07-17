@@ -13,7 +13,7 @@ QVector<QLineF> InitialRays;
 QVector<QLineF> FinalRays;
 
 Bench::Bench(QWidget *parent) : QWidget(parent) {
-	window = QRectF(-5.0, -5.0, 10.0, 10.0);
+	window = QRectF(-5.0, 5.0, 10.0, 10.0);
 	RaySpacing = 1.0;
 }
 
@@ -21,8 +21,9 @@ void Bench::setRaySpacing(double s) {
 	RaySpacing = s;
 }
 
-void Bench::setTheta(double t) {
-	Theta = t;
+void Bench::setTheta(int t) {
+	Theta = (double) t;
+	setLights(Theta);
 }
 void Bench::mousePressEvent(QMouseEvent *event)
 {
@@ -36,8 +37,6 @@ void Bench::paintEvent(QPaintEvent * /* event */)
 {
     QPainter painter(this);
     //painter.setRenderHint(QPainter::Antialiasing, true);
-
-    int side = qMin(width(), height());
 
     //painter.setViewport((width() - side) / 2, (height() - side) / 2, side, side);
     painter.setWindow((int) window.x(), (int) window.y(), (int) window.width(), (int) window.height() );
@@ -57,75 +56,42 @@ void Bench::draw(QPainter *painter)
 }
 
 void Bench::setLights(double theta) {
+
+    InitialRays.resize(0);  // reset array to null
+	
 	if(theta == 90.0) {
 		for(double x = window.left(); x < window.right(); x += RaySpacing) {
-			InitialRays.append(QLineF(x, window.top(), x, window.bottom() ) );
+			InitialRays.append( QLineF(x, window.top(), x, window.bottom() ) );
 		}
+	} else {
+		float t = theta * 0.0174532925; // ((theta < 90.0) ? theta : 180.0 - theta) * 0.0174532925;
+		float x_inc = RaySpacing / std::sin(t);
+		float y_inc = RaySpacing / std::cos(t);
+		float c_x1 = window.right(); // (theta < 90.0) ? window.right() : window.left();
+		float c_y1 = window.top();
+		float c_x2 = c_x1 - 10.0 * std::cos(t); // ((theta < 90.0) ? c_x1 - 10.0: c_x1 + 10.0) * std::cos(t);
+		float c_y2 = c_y1 - 10.0 * std::sin(t);
+		
+		InitialRays.append( QLineF( c_x1, c_y1, c_x2, c_y2) );
+		int rays_across = (int) (window.width() / x_inc);
+		int rays_down   = (int) (window.height() / y_inc);
+		
+		for(int idx = 0; idx <= rays_across; idx++) {
+			double shift;
+			if(theta < 90.0) {
+				shift =  -1.0 * idx * x_inc;
+			} else {
+				shift = (double) idx * x_inc;
+			}
+			InitialRays.append( QLineF((float) idx*x_inc-2.0, 1.0,
+									   (float) idx*x_inc-2.0, -1.0) );
+			InitialRays.append( QLineF((float) c_x1 + shift, (float) c_y1, (float) c_x2 + shift, (float) c_y2) );
+		} 
+		for(int idx = 1; idx <= rays_down; idx++) {
+			InitialRays.append( QLineF(c_x1, c_y1 - idx*y_inc, c_x2, c_y2 - idx*y_inc) );
+			InitialRays.append( QLineF(-1.0, (float) (idx*y_inc-2.0), 1.0, (float) (idx*y_inc-2.0) ) );
+		} 
 	}
-	//update();
+	update(); // schedule a repaint of new rays
 }
-/*
-void set_lightsdouble t, double spacing) {
-	float px_spacing = (float)(w_px*spacing/x_range);
-    float num_rays = w_px / px_spacing;
-    Ray temp;
-    
-    InitialRays.resize(0);  // reset array to null
-  
-    if(t == 90.0) {
-      for(int idx = 0; idx < num_rays; idx++) {
-        temp = new Ray(idx*spacing+x_min, y_max, idx*spacing+x_min, y_min, 0);
-        //temp.draw();
-        input_array[idx] = temp;
-      }
-    } else if(t < 90.0) {
-      t = radians((float)t);
-      double x_inc = spacing / sin((float)t);
-      double y_inc = spacing / cos((float)t);
-  
-      double c_x1 = x_max;
-      double c_y1 = y_max;
-      double c_x2 = c_x1 - 15 * cos((float) t);
-      double c_y2 = c_y1 - 15 * sin((float) t);
-      int ray_num = 0;
-      int rays_across = (int) (x_range / x_inc);
-      int rays_down   = (int) (y_range / y_inc);
-      
-      for(int idx = 0; idx <= rays_across; idx++) {
-        temp = new Ray(c_x1 - idx*x_inc, c_y1, c_x2 - idx*x_inc, c_y2, 0);
-        input_array[ray_num] = temp;
-        ray_num++;
-      } 
-      for(int idx = 1; idx <= rays_down; idx++) {
-        temp = new Ray(c_x1, c_y1 - idx*y_inc, c_x2, c_y2 - idx*y_inc, 0);
-        input_array[ray_num] = temp;
-        ray_num++;
-      } 
-    } else {    //greater than 90
-      t = radians(180.0 - (float)t);   **
-      double x_inc = spacing / sin((float)t);
-      double y_inc = spacing / cos((float)t);
-  
-      double c_x1 = x_min;  **
-      double c_y1 = y_max;
-      double c_x2 = c_x1 + 15 * cos((float) t);  **
-      double c_y2 = c_y1 - 15 * sin((float) t);
-      int ray_num = 0;
-      int rays_across = (int) (x_range / x_inc);
-      int rays_down   = (int) (y_range / y_inc);
-      
-      for(int idx = 0; idx <= rays_across; idx++) {
-        temp = new Ray(c_x1 + idx*x_inc, c_y1, c_x2 + idx*x_inc, c_y2, 0);  **
-        input_array[ray_num] = temp;
-        ray_num++;
-      } 
-      for(int idx = 1; idx <= rays_down; idx++) {
-        temp = new Ray(c_x1, c_y1 - idx*y_inc, c_x2, c_y2 - idx*y_inc, 0);
-        input_array[ray_num] = temp;
-        ray_num++;
-      } 
-    }
-    
-  } 
-  */
-  
+ 
