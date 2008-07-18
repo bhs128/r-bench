@@ -6,17 +6,15 @@
 #include <QVector>
 #include <QRect>
 
-class Bench : public QWidget
-{
+#include "reflector.h"
+
+class Bench : public QWidget {
     Q_OBJECT
 
 public:
     Bench(QWidget *parent = 0);
-   // int duration() const;
-    void draw(QPainter *painter);
 
 //signals:
-   // void timeout();
 
 public slots:
 	void setTheta(int theta);
@@ -27,12 +25,13 @@ protected:
     void mousePressEvent(QMouseEvent *event);
 
 private:
-	void drawGrid(QPainter *painter);
 	void setLights(double theta);
+	
+	void drawGrid(QPainter *painter);
+    void drawRays(QPainter *painter);
 	QRect  window;
-   // QDateTime finishTime;
-   // QTimer *updateTimer;
-   // QTimer *finishTimer;
+	Reflector mirror;
+
 };
 
 #endif

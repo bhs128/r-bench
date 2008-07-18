@@ -13,6 +13,7 @@ float w_right = 5.0;
 float w_left = -5.0;
 float w_top, w_bottom, w_width, w_height;
 float px_per_unit;
+
 QVector<QLineF> InitialRays;
 QVector<QLineF> FinalRays;
 
@@ -21,6 +22,7 @@ Bench::Bench(QWidget *parent) : QWidget(parent) {
 	w_left = -5.0;
 
 	RaySpacing = 1.0;
+	mirror = new Reflector(0.5, -2.0, 2.0);
 }
 
 void Bench::setRaySpacing(double s) {
@@ -31,17 +33,16 @@ void Bench::setTheta(int t) {
 	Theta = (double) t;
 	setLights(Theta);
 }
-void Bench::mousePressEvent(QMouseEvent *event)
-{
+
+void Bench::mousePressEvent(QMouseEvent *event) {
 	QPointF point = event->pos() - rect().center();
 	//setLights(90.0);
 	//InitialRays.append(QLineF(0,0,point.x(), point.y() ));
     update();
 }
 
-void Bench::paintEvent(QPaintEvent * /* event */)
-{
-	QMatrix reflectionMatrix(1, 0, 0, -1, 0.0, 0.0);
+void Bench::paintEvent(QPaintEvent * /* event */) {
+	QMatrix reflectionMatrix(1, 0, 0, -1, 0.0, 0.0); // Defines a reflection over the x-axis
     QPainter painter(this);
 	painter.setMatrix(reflectionMatrix);
 
@@ -54,29 +55,26 @@ void Bench::paintEvent(QPaintEvent * /* event */)
 	
 	window = QRect((int) w_left, -1 * (int) w_top, (int) w_width, (int) w_height);
 
-    //painter.setViewport((width() - side) / 2, (height() - side) / 2, side, side);
     painter.setWindow(window);
 	setLights(Theta);
 	drawGrid(&painter);	
-    draw(&painter);
+    drawRays(&painter);
+	mirror.draw(&painter);
 }
 
-void Bench::draw(QPainter *painter)
-{
+void Bench::drawRays(QPainter *painter) {
     QColor niceYellow(255,192,0);
     QPen thinPen(niceYellow);
-	
     painter->setPen(thinPen);
 
     painter->drawLines(InitialRays); 
-	//painter->drawRect(window);
 }
 
 void Bench::drawGrid(QPainter *painter) {
 	QColor niceBlue(0,0,255);
     QPen   gridPen(niceBlue);
 	
-	painter->fillRect( window, QColor(255,255,255));
+	painter->fillRect( (int) w_left, (int) w_bottom,(int) w_width, (int) w_height, QColor(255,255,255)); 
 	painter->setPen(gridPen);
 	// Horizontal X-Axis
 	painter->drawLine( QLineF(w_left, 0.0, w_right, 0.0) );
@@ -104,8 +102,8 @@ void Bench::setLights(double theta) {
 		float c_y2 = c_y1 - 15.0 * std::sin(t);
 		
 		InitialRays.append( QLineF( c_x1, c_y1, c_x2, c_y2) );
-		int rays_across = (int) (window.width() / x_inc);
-		int rays_down   = (int) (window.height() / y_inc);
+		int rays_across = (int) (w_width / x_inc);
+		int rays_down   = (int) (w_height / y_inc);
 		
 		for(int idx = 1; idx <= rays_across; idx++) {
 			double shift;
