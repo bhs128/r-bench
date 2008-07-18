@@ -9,12 +9,17 @@
 
 double 	RaySpacing;
 double	Theta; // In degrees
-
+float w_right = 5.0;
+float w_left = -5.0;
+float w_top, w_bottom, w_width, w_height;
+float px_per_unit;
 QVector<QLineF> InitialRays;
 QVector<QLineF> FinalRays;
 
 Bench::Bench(QWidget *parent) : QWidget(parent) {
-	window = QRect(-5, -5, 10, 10);
+	w_right = 5.0;
+	w_left = -5.0;
+
 	RaySpacing = 1.0;
 }
 
@@ -41,6 +46,13 @@ void Bench::paintEvent(QPaintEvent * /* event */)
 	painter.setMatrix(reflectionMatrix);
 
     painter.setRenderHint(QPainter::Antialiasing, true);
+	w_width = w_right - w_left;
+	px_per_unit = width() / w_width;
+	w_bottom = -1.0;
+	w_top = height() / px_per_unit + w_bottom;
+	w_height = w_top - w_bottom;
+	
+	window = QRect((int) w_left, -1 * (int) w_top, (int) w_width, (int) w_height);
 
     //painter.setViewport((width() - side) / 2, (height() - side) / 2, side, side);
     painter.setWindow(window);
@@ -51,7 +63,7 @@ void Bench::paintEvent(QPaintEvent * /* event */)
 
 void Bench::draw(QPainter *painter)
 {
-    QColor niceYellow(0,0,0);
+    QColor niceYellow(255,192,0);
     QPen thinPen(niceYellow);
 	
     painter->setPen(thinPen);
@@ -62,14 +74,16 @@ void Bench::draw(QPainter *painter)
 
 void Bench::drawGrid(QPainter *painter) {
 	QColor niceBlue(0,0,255);
-    QPen   gridPen(niceBlue, 0.25);
+    QPen   gridPen(niceBlue);
+	
+	painter->fillRect( window, QColor(255,255,255));
 	painter->setPen(gridPen);
 	// Horizontal X-Axis
-	painter->drawLine( QLineF(window.left(), 0.0, window.x()+window.width(), 0.0) );
+	painter->drawLine( QLineF(w_left, 0.0, w_right, 0.0) );
 	// Vertical Y-axis
-	painter->drawLine( QLineF(0.0, window.top(), 0.0, window.y()+window.height()) );
+	painter->drawLine( QLineF(0.0, w_top, 0.0, w_bottom) );
 	
-	painter->drawPoint(-1,-1);
+	//painter->drawPoint(-1,-1);
 }
 
 void Bench::setLights(double theta) {
@@ -77,36 +91,33 @@ void Bench::setLights(double theta) {
     InitialRays.resize(0);  // reset array to null
 	
 	if(theta == 90.0) {
-		for(double x = window.left(); x < window.right(); x += RaySpacing) {
-			InitialRays.append( QLineF(x, window.top(), x, window.bottom() ) );
+		for(double x = w_left; x < w_right; x += RaySpacing) {
+			InitialRays.append( QLineF(x, w_top, x, w_bottom ) );
 		}
 	} else {
-		float t = theta * 0.0174532925; // ((theta < 90.0) ? theta : 180.0 - theta) * 0.0174532925;
+		float t = ((theta < 90.0) ? theta : 180.0 - theta) * 0.0174532925;
 		float x_inc = RaySpacing / std::sin(t);
 		float y_inc = RaySpacing / std::cos(t);
-		float c_x1 = window.right(); // (theta < 90.0) ? window.right() : window.left();
-		float c_y1 = window.top();
-		float c_x2 = c_x1 - 10.0 * std::cos(t); // ((theta < 90.0) ? c_x1 - 10.0: c_x1 + 10.0) * std::cos(t);
-		float c_y2 = c_y1 - 10.0 * std::sin(t);
+		float c_x1 = (theta < 90.0) ? w_right : w_left;
+		float c_y1 = w_top;
+		float c_x2 = c_x1 + (((theta < 90.0) ? -15 : 15 ) * std::cos(t));
+		float c_y2 = c_y1 - 15.0 * std::sin(t);
 		
 		InitialRays.append( QLineF( c_x1, c_y1, c_x2, c_y2) );
 		int rays_across = (int) (window.width() / x_inc);
 		int rays_down   = (int) (window.height() / y_inc);
 		
-		for(int idx = 0; idx <= rays_across; idx++) {
+		for(int idx = 1; idx <= rays_across; idx++) {
 			double shift;
 			if(theta < 90.0) {
 				shift =  -1.0 * idx * x_inc;
 			} else {
 				shift = (double) idx * x_inc;
 			}
-			InitialRays.append( QLineF((float) idx*x_inc-2.0, 1.0,
-									   (float) idx*x_inc-2.0, -1.0) );
 			InitialRays.append( QLineF((float) c_x1 + shift, (float) c_y1, (float) c_x2 + shift, (float) c_y2) );
 		} 
 		for(int idx = 1; idx <= rays_down; idx++) {
 			InitialRays.append( QLineF(c_x1, c_y1 - idx*y_inc, c_x2, c_y2 - idx*y_inc) );
-			InitialRays.append( QLineF(-1.0, (float) (idx*y_inc-2.0), 1.0, (float) (idx*y_inc-2.0) ) );
 		} 
 	}
 	update(); // schedule a repaint of new rays
