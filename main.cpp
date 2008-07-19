@@ -3,8 +3,8 @@
 #include <QSlider>
 #include <QWidget>
 
-#include "bench.h"
 #include "reflector.h"
+#include "bench.h"
 
 int main(int argc, char *argv[])
 {

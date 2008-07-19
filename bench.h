@@ -30,7 +30,7 @@ private:
 	void drawGrid(QPainter *painter);
     void drawRays(QPainter *painter);
 	QRect  window;
-	Reflector mirror;
+	Reflector *mirror;
 
 };
 

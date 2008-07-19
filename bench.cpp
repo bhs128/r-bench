@@ -59,7 +59,7 @@ void Bench::paintEvent(QPaintEvent * /* event */) {
 	setLights(Theta);
 	drawGrid(&painter);	
     drawRays(&painter);
-	mirror.draw(&painter);
+	mirror->draw(&painter);
 }
 
 void Bench::drawRays(QPainter *painter) {
