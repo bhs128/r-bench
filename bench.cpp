@@ -17,7 +17,7 @@ float px_per_unit;
 QVector<QLineF> InitialRays;
 QVector<QLineF> FinalRays;
 
-Bench::Bench(QWidget *parent) : QWidget(parent), mirror(0.5, -2.0, 2.0) {
+Bench::Bench(QWidget *parent) : QWidget(parent), mirror(0.25, -2.0, 2.0) {
 	w_right = 3.0;
 	w_left = -3.0;
 
@@ -33,6 +33,12 @@ void Bench::setTheta(int t) {
 	setLights(Theta);
 }
 
+void Bench::setAlpha(int alpha) { // slider eidget only uses int's - alpha is in hundredths
+	mirror.setAlpha((double) alpha / 100.0);
+	emit alphaChanged((double) alpha / 100.0);
+	runSimulation();
+}
+
 void Bench::mousePressEvent(QMouseEvent *event) {
 	QPointF point = event->pos() - rect().center();
 	//setLights(90.0);
@@ -45,7 +51,7 @@ void Bench::paintEvent(QPaintEvent * /* event */) {
     QPainter painter(this);
 	painter.setMatrix(reflectionMatrix);
 
-    //painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setRenderHint(QPainter::Antialiasing, true);
 	w_width = w_right - w_left;
 	px_per_unit = width() / w_width;
 	w_bottom = -1;
@@ -62,7 +68,7 @@ void Bench::paintEvent(QPaintEvent * /* event */) {
 }
 
 void Bench::drawRays(QPainter *painter) {
-    QColor niceYellow(255,192,0);
+    QColor niceYellow(255,192,0, 128);
     QPen thinPen(niceYellow);
     painter->setPen(thinPen);
 
@@ -118,7 +124,6 @@ void Bench::setLights(double theta) {
 		} 
 	}
 	runSimulation(); // Incoming rays have changed- need to re-run simulation
-	update(); // schedule a repaint of new rays
 }
 
 void Bench::runSimulation() {
@@ -130,6 +135,7 @@ void Bench::runSimulation() {
 			
 		FinalRays.append(tmp);  // note- every input ray ends up in output array
 	}
+	update(); // schedule a repaint of new rays
 }
 
 void Bench::bounce(QLineF *a_ray) {

@@ -33,6 +33,9 @@ double Reflector::d_func(double x) { // the derivative function of func()
 	//return x / sqrt((float) (a*a-x*x));// semicircle
 }
 
+void Reflector::setAlpha(double alpha) {
+	a = alpha;
+}
 void Reflector::draw(QPainter *painter) {
     QColor darkGrey(64,64,64);
     QPen rPen(darkGrey);

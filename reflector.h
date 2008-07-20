@@ -15,6 +15,7 @@ public:
 	bool enters(QLineF a_ray, float theta);
 	bool intersects(const QLineF *a_ray);
 	QLineF reflected_ray(const QLineF *a_ray);
+	void setAlpha(double a);
 	
 private:
 	double func(double x);

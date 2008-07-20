@@ -14,10 +14,12 @@ class Bench : public QWidget {
 public:
     Bench(QWidget *parent = 0);
 
-//signals:
-
+signals:
+	void alphaChanged(double a); 
+	
 public slots:
-	void setTheta(int theta);
+	void setTheta(int theta); // Change angle of incoming light
+	void setAlpha(int alpha); // Change reflector  scaleing factor
     void setRaySpacing(double s);
 	void runSimulation();
 	
