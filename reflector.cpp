@@ -71,15 +71,15 @@ bool Reflector::enters(QLineF a_ray, float theta) {
 	}
 }
 
-bool Reflector::intersects(QLineF a_ray) {
-	if(a_ray.x1() == a_ray.x2()) { // is vertical
-		if(a_ray.x1() < x_min) {
+bool Reflector::intersects(const QLineF *a_ray) {
+	if(a_ray->x1() == a_ray->x2()) { // is vertical
+		if(a_ray->x1() < x_min) {
 			return false;
 		}
-		if(a_ray.x1() > x_max) {
+		if(a_ray->x1() > x_max) {
 			return false;
 		}   
-		if( a_ray.y1() > func(a_ray.x1()) && a_ray.y2() < func(a_ray.x1()) ) { // does it start above and end below?
+		if( a_ray->y1() > func(a_ray->x1()) && a_ray->y2() < func(a_ray->x1()) ) { // does it start above and end below?
 			return true; 
 		} else {
 			return false;
@@ -87,12 +87,12 @@ bool Reflector::intersects(QLineF a_ray) {
 	} else { // not a vertical ray..
 		double ax1, ay1, ax2, ay2; //a_ray's start points
 		int last_sign, cur_sign;
-		double am = (a_ray.y2() - a_ray.y1())/(a_ray.x2() - a_ray.x1());
+		double am = (a_ray->y2() - a_ray->y1())/(a_ray->x2() - a_ray->x1());
 		
-		ax1 = a_ray.x1();
-		ay1 = a_ray.y1();
-		ax2 = a_ray.x2();
-		ay2 = a_ray.y2();
+		ax1 = a_ray->x1();
+		ay1 = a_ray->y1();
+		ax2 = a_ray->x2();
+		ay2 = a_ray->y2();
 
 		if(ax1 < ax2) {
 			last_sign = sign(func(ax1+0.01) - (am*((ax1+0.01)-ax1)+ay1) );
@@ -121,22 +121,22 @@ bool Reflector::intersects(QLineF a_ray) {
 	} // end non-vertical intersection test
 }
 
-QPointF Reflector::intersection_coord(QLineF a_ray) {
+QPointF Reflector::intersection_coord(const QLineF *a_ray) {
 	double xi, yi;
 	
-	if(a_ray.x1() == a_ray.x2()) { // is vertical
-		return QPointF( a_ray.x1() , func(a_ray.x1()) );
+	if(a_ray->x1() == a_ray->x2()) { // is vertical
+		return QPointF( a_ray->x1() , func(a_ray->x1()) );
 	} else {
 		double ax1, ay1, ax2, ay2; //a_ray's points
 		double xp1, xp2; // x point 1 and two, intersection areas
 		double dist_xp1, dist_xp2; // distance to possible intersection points from the starting point of ray
-		double am = (a_ray.y2() - a_ray.y1())/(a_ray.x2() - a_ray.x1());
+		double am = (a_ray->y2() - a_ray->y1())/(a_ray->x2() - a_ray->x1());
 		int last_sign, cur_sign;
 
-		ax1 = a_ray.x1();
-		ay1 = a_ray.y1();
-		ax2 = a_ray.x2();
-		ay2 = a_ray.y2();  
+		ax1 = a_ray->x1();
+		ay1 = a_ray->y1();
+		ax2 = a_ray->x2();
+		ay2 = a_ray->y2();  
 		xp1 = xp2 = -10000.0;
 		
 		if(ax1 < ax2) { // what direction is the ray facing?
@@ -196,25 +196,25 @@ QPointF Reflector::intersection_coord(QLineF a_ray) {
 	}
 }
 
-QLineF Reflector::reflected_ray(QLineF a_ray) { 
+QLineF Reflector::reflected_ray(const QLineF *a_ray) { 
 	double ax1, ay1, ax2, ay2; //a_ray's points
 	double bx1, by1, bx2, by2; 
 	
-	ax1 = a_ray.x1();
-	ay1 = a_ray.y1();
-	ax2 = a_ray.x2();
-	ay2 = a_ray.y2();
+	ax1 = a_ray->x1();
+	ay1 = a_ray->y1();
+	ax2 = a_ray->x2();
+	ay2 = a_ray->y2();
 	
-	if(a_ray.x1() == a_ray.x2()) { // is vertical
+	if(a_ray->x1() == a_ray->x2()) { // is vertical
 		//first point is coord of intersection 
 		bx1 = ax1;       
 		by1 = func(ax1); 
 		
 		float shift = (ax1>0)?M_PI/2:-1*M_PI/2;
-		float theta = atan((float)d_func(ax1))*2-shift;
-		double r_slope = tan(theta);
-		double d_x = 10*cos(theta);
-		double d_y = 10*sin(theta);
+		float theta = std::atan((float)d_func(ax1))*2-shift;
+		//double r_slope = std::tan(theta);
+		double d_x = 15*std::cos(theta);
+		double d_y = 15*std::sin(theta);
 		
 		if(ax1<=0) {
 			bx2 = ax1 + d_x;
@@ -226,27 +226,48 @@ QLineF Reflector::reflected_ray(QLineF a_ray) {
 		
 		return QLineF(bx1, by1, bx2, by2);
 	} else { // not a vertical ray
-		Coord r_start, r_end; // coords of reflected endpoints of a_ray
-		Coord isect;
+		QPointF  r_start, r_end; // coords of reflected endpoints of a_ray
+		QPointF  isect;
 		double xi, yi;
 		QLineF tangent;
 		double fm; //function slope at intersection
 		
 		isect = intersection_coord(a_ray);
-		xi = isect.getX();
-		yi = isect.getY();
+		xi = isect.x();
+		yi = isect.y();
 		
 		fm = d_func(xi);
 		tangent = QLineF(xi-1.0, fm*((xi-1.0)-xi)+yi, xi+1.0, fm*((xi+1.0)-xi)+yi );
 		//stroke(128);
 		//tangent.draw();
 		// reflect the start and end points over the tangent ray
-		r_start = tangent.reflect_point(new Coord(ax1, ay1));
-		r_end = tangent.reflect_point( Coord(ax2, ay2));
+		r_start = reflect_point( &tangent, new QPointF(ax1, ay1) );
+		r_end = reflect_point( &tangent, new QPointF(ax2, ay2) );
 		
 		// reflected start and end points are the reflected ray, return it-
-		return QLineF( r_start.getX(), r_start.getY(), r_end.getX(), r_end.getY() );
+		return QLineF( r_start.x(), r_start.y(), r_end.x(), r_end.y() );
 	}
+}
+
+QPointF Reflector::reflect_point(QLineF *line, QPointF *p) {
+	double ml = (line->y2() - line->y1())/(line->x2() - line->x1());
+	double mr = 1.0 / ml * -1.0; 
+	double px, py; // starting point
+	double xi, yi; // intersection point
+	double xp, yp; // reflected point, x & y prime
+
+	px = p->x();
+	py = p->y();
+
+	xi = (mr*px - py - ml*line->x1() + line->y1())/(mr-ml);
+	yi = ml*(xi - line->x1()) + line->y1();
+
+	//line(map_x(px), map_y(py), map_x(xi), map_y(yi)); 
+	xp = px + 2.0*(xi - px);
+	yp = py + 2.0*(yi - py);
+
+	return QPointF(xp, yp);
+
 }
 
 int Reflector::sign(double value) {

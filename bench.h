@@ -19,6 +19,7 @@ public:
 public slots:
 	void setTheta(int theta);
     void setRaySpacing(double s);
+	void runSimulation();
 	
 protected:
     void paintEvent(QPaintEvent *event);
@@ -26,11 +27,11 @@ protected:
 
 private:
 	void setLights(double theta);
-	
+	void bounce(QLineF *a_ray);	
 	void drawGrid(QPainter *painter);
     void drawRays(QPainter *painter);
 	QRect  window;
-	Reflector *mirror;
+	Reflector mirror;
 
 };
 

@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
     window->setWindowTitle(QObject::tr("R-Bench"));
 	
 	Bench *b = new Bench();
-	b->setRaySpacing(0.25);
+	b->setRaySpacing(0.125);
 	
 	QSlider *tSlider = new QSlider(Qt::Horizontal);
 	tSlider->setRange(5,175);
