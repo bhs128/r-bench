@@ -1,3 +1,22 @@
+/******************************************************************************
+R-Bench - Reflector Workbench models how light reflects off mirrors of 
+	various shapes
+Copyright (C) 2008  Benjamin H. Schaffhausen
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+******************************************************************************/
 #include <QtGui>
 #include <cmath>
 
@@ -20,20 +39,45 @@ QVector<QLineF> FinalRays;
 Bench::Bench(QWidget *parent) : QWidget(parent), mirror(0.25, -2.0, 2.0) {
 	w_right = 3.0;
 	w_left = -3.0;
-
+	
 	RaySpacing = .125;
 }
 
-void Bench::setRaySpacing(double s) {
-	RaySpacing = s;
-}
 
 void Bench::setTheta(int t) {
 	Theta = (double) t;
-	setLights(Theta);
+	setLights();
+}
+void Bench::setParabola(bool) {
+	mirror.setShape(PARA);
 }
 
-void Bench::setAlpha(int alpha) { // slider eidget only uses int's - alpha is in hundredths
+void Bench::setCatenary(bool) {
+	mirror.setShape(CAT);
+}
+
+void Bench::setSemi(bool) {
+	mirror.setShape(SEMI);
+}
+
+void Bench::setRaySpacing(int s) {
+	RaySpacing = (double) s / 100.0;
+	emit spacingChanged((double) s / 100.0);
+	setLights();
+}
+void Bench::setReflectorMin(int min) {
+	mirror.setFmin((double) min / 100.0);
+	emit reflectorMinChanged((double) min / 100.0);
+	runSimulation();
+}
+
+void Bench::setReflectorMax(int max) { // slider widget only uses int's - max is in hundredths
+	mirror.setFmax((double) max / 100.0);
+	emit reflectorMaxChanged((double) max / 100.0);
+	runSimulation();
+}
+	
+void Bench::setAlpha(int alpha) { // slider widget only uses int's - alpha is in hundredths
 	mirror.setAlpha((double) alpha / 100.0);
 	emit alphaChanged((double) alpha / 100.0);
 	runSimulation();
@@ -61,7 +105,7 @@ void Bench::paintEvent(QPaintEvent * /* event */) {
 	window = QRect((int) w_left, -1 * (int) w_top, (int) w_width, (int) w_height);
 
     painter.setWindow(window);
-	setLights(Theta);
+	setLights();
 	drawGrid(&painter);	
     drawRays(&painter);
 	mirror.draw(&painter);
@@ -89,8 +133,8 @@ void Bench::drawGrid(QPainter *painter) {
 	//painter->drawPoint(-1,-1);
 }
 
-void Bench::setLights(double theta) {
-
+void Bench::setLights() {
+	double theta = Theta;
     InitialRays.resize(0);  // reset array to null
 	
 	if(theta == 90.0) {

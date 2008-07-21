@@ -1,3 +1,22 @@
+/******************************************************************************
+R-Bench - Reflector Workbench models how light reflects off mirrors of 
+	various shapes
+Copyright (C) 2008  Benjamin H. Schaffhausen
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+******************************************************************************/
 #include <QtGui>
 #include <cmath>
 
@@ -7,35 +26,61 @@
 
 #include "reflector.h"
 
-double x_min, x_max, range, a;
-QLineF gate_line;
-int res = 100;
-
 Reflector::Reflector(double A, double minimum, double maximum) {
 	a = A;
 	x_min = minimum;
 	x_max = maximum;
 	range = x_max - x_min;
-	res = 100;
-	gate_line = QLineF(x_min, func(x_min), x_max, func(x_max));
-
+	res = 1000;
+	//gate_line = QLineF(x_min, func(x_min), x_max, func(x_max));
+	shape = CAT;
 }
 
 double Reflector::func(double x) { //one (or more) equations describing the reflector shape
-	return a*std::cosh(x)-a; // Catenary
-	//return a*(x*x); // Parabola
-	//return -1 * sqrt((float) (a*a-x*x))+a; // semicircle
+	double radius;
+	switch(shape) {
+		case PARA:
+			return a*(x*x); // Parabola
+		case SEMI:
+			radius = a * -6.0 + 9.0;
+			return -1 * std::sqrt((float) (radius*radius-x*x))+radius; // semicircle
+		case CAT:
+		default:
+			return a*std::cosh(x)-a; // Catenary
+	}
+		
 }
 
 double Reflector::d_func(double x) { // the derivative function of func()
-	return a*std::sinh(x); // Catenary
-	//return a*2*x; // Parabola
-	//return x / sqrt((float) (a*a-x*x));// semicircle
+	double radius;
+	switch(shape) {
+		case PARA:
+			return a*2*x; // Parabola		
+		case SEMI:
+			radius = a * -6.0 + 9.0;
+			return x / std::sqrt((float) (radius*radius-x*x));// semicircle
+		case CAT:
+		default:
+			return a*std::sinh(x); // Catenary
+	}
 }
 
 void Reflector::setAlpha(double alpha) {
 	a = alpha;
 }
+
+void Reflector::setShape(const int s) {
+	shape = s;
+}
+
+void Reflector::setFmin(const double min) {
+	x_min = min;
+}
+
+void Reflector::setFmax(const double max) {
+	x_max = max;
+}
+
 void Reflector::draw(QPainter *painter) {
     QColor darkGrey(64,64,64);
     QPen rPen(darkGrey);
@@ -50,27 +95,6 @@ void Reflector::draw(QPainter *painter) {
 		painter->drawLine( QLineF(x1, y1, x2, y2) );
 		x1 = x2;
 		y1 = y2;
-	}
-}
-
-bool Reflector::enters(QLineF a_ray, float theta) {
-	double ax1, ay1, ax2, ay2; //a_ray's start points
-	double lx, rx; 
-	ax1 = a_ray.x1();
-	ay1 = a_ray.y1();
-	ax2 = a_ray.x2();
-	ay2 = a_ray.y2();
-
-	lx = (ay1 - gate_line.y1()) / tan(theta);
-	rx = (ay1 - gate_line.y2()) / tan(theta);
-	
-	if(ay1 < gate_line.y1() && ay1 < gate_line.y2()) { // can't enter if you start below the gate line
-		return false;
-	} 
-	if(ax1 > lx && ax1 < rx) {
-		return true;
-	} else {
-		return false;
 	}
 }
 
