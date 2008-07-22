@@ -27,6 +27,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "reflector.h"
 
+#define SCALER 1024
+
 class Bench : public QWidget {
     Q_OBJECT
 
@@ -59,8 +61,17 @@ private:
 	void bounce(QLineF *a_ray);	
 	void drawGrid(QPainter *painter);
     void drawRays(QPainter *painter);
+	
 	QRect  window;
 	Reflector mirror;
+	QVector<QLineF> InitialRays;
+	QVector<QLineF> FinalRays;
+	
+	float w_right, w_left, w_top, w_bottom, w_width, w_height;
+	float px_per_unit;
+	float subunits_per_px;
+	double 	RaySpacing;
+	double	Theta; // In degrees
 
 };
 

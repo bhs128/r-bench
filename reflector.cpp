@@ -28,41 +28,53 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 Reflector::Reflector(double A, double minimum, double maximum) {
 	a = A;
-	x_min = minimum;
-	x_max = maximum;
+	x_min = minimum * SCALER;
+	x_max = maximum * SCALER;
 	range = x_max - x_min;
 	res = 1000;
-	//gate_line = QLineF(x_min, func(x_min), x_max, func(x_max));
 	shape = CAT;
 }
 
 double Reflector::func(double x) { //one (or more) equations describing the reflector shape
 	double radius;
+	double answer;
+	x = x / (double) SCALER;
+	
 	switch(shape) {
 		case PARA:
-			return a*(x*x); // Parabola
+			answer = a*(x*x); // Parabola
+			break;
 		case SEMI:
 			radius = a * -6.0 + 9.0;
-			return -1 * std::sqrt((float) (radius*radius-x*x))+radius; // semicircle
+			answer = -1 * std::sqrt((float) (radius*radius-x*x))+radius; // semicircle
+			break;
 		case CAT:
 		default:
-			return a*std::cosh(x)-a; // Catenary
+			answer = a*std::cosh(x)-a; // Catenary
 	}
-		
+	
+	return answer * SCALER;	
 }
 
 double Reflector::d_func(double x) { // the derivative function of func()
 	double radius;
+	double answer;
+	x = x / (double) SCALER;	
+
 	switch(shape) {
 		case PARA:
-			return a*2*x; // Parabola		
+			answer = a*2*x; // Parabola	
+			break;
 		case SEMI:
 			radius = a * -6.0 + 9.0;
-			return x / std::sqrt((float) (radius*radius-x*x));// semicircle
+			answer = x / std::sqrt((float) (radius*radius-x*x));// semicircle
+			break;
 		case CAT:
 		default:
-			return a*std::sinh(x); // Catenary
+			answer = a*std::sinh(x); // Catenary
 	}
+	
+	return answer;
 }
 
 void Reflector::setAlpha(double alpha) {
@@ -74,11 +86,19 @@ void Reflector::setShape(const int s) {
 }
 
 void Reflector::setFmin(const double min) {
-	x_min = min;
+	x_min = min * SCALER;
 }
 
 void Reflector::setFmax(const double max) {
-	x_max = max;
+	x_max = max * SCALER;
+}
+
+double Reflector::fMin() {
+	return x_min / (double) SCALER;
+}
+
+double Reflector::fMax() {
+	return x_max / (double) SCALER;
 }
 
 void Reflector::draw(QPainter *painter) {
@@ -99,14 +119,14 @@ void Reflector::draw(QPainter *painter) {
 }
 
 bool Reflector::intersects(const QLineF *a_ray) {
-	if(a_ray->x1() == a_ray->x2()) { // is vertical
+	if(std::abs(a_ray->x1() - a_ray->x2()) < 0.001) { // is vertical
 		if(a_ray->x1() < x_min) {
 			return false;
 		}
 		if(a_ray->x1() > x_max) {
 			return false;
 		}   
-		if( a_ray->y1() > func(a_ray->x1()) && a_ray->y2() < func(a_ray->x1()) ) { // does it start above and end below?
+		if( a_ray->y1() > func(a_ray->x1()) && a_ray->y2() < func(a_ray->x2()) ) { // does it start above and end below?
 			return true; 
 		} else {
 			return false;
@@ -164,7 +184,7 @@ QPointF Reflector::intersection_coord(const QLineF *a_ray) {
 		ay1 = a_ray->y1();
 		ax2 = a_ray->x2();
 		ay2 = a_ray->y2();  
-		xp1 = xp2 = -10000.0;
+		xp1 = xp2 = -1000000.0;
 		
 		if(ax1 < ax2) { // what direction is the ray facing?
 			last_sign = sign(func(ax1+0.001) - (am*((ax1+0.001)-ax1)+ay1) );
@@ -174,7 +194,7 @@ QPointF Reflector::intersection_coord(const QLineF *a_ray) {
 				//line(map_x(x), map_y(0.0), map_x(x), map_y(func(x) - (am*(x-ax1)+ay1)) );
 				if(cur_sign != last_sign) { // change in sign means an interection
 					if(x> x_min && x < x_max) { // is the intersection on the reflector?
-						if(xp1 <= -1000.0) { // xp1 is empty , fill it- otherwise fill xp2
+						if(xp1 <= -100000.0) { // xp1 is empty , fill it- otherwise fill xp2
 							xp1 = x;
 						} else {
 							xp2 = x;
@@ -191,7 +211,7 @@ QPointF Reflector::intersection_coord(const QLineF *a_ray) {
 				//line(map_x(x), map_y(0.0), map_x(x), map_y(func(x) - (am*(x-ax1)+ay1)) );
 				if(cur_sign != last_sign) { // change in sign means an interection
 					if(x> x_min && x < x_max) { // is the intersection on the reflector?
-						if(xp1 <= -1000.0) { // xp1 is empty , fill it- otherwise fill xp2
+						if(xp1 <= -100000.0) { // xp1 is empty , fill it- otherwise fill xp2
 							xp1 = x;
 						} else {
 							xp2 = x;
@@ -232,7 +252,7 @@ QLineF Reflector::reflected_ray(const QLineF *a_ray) {
 	ax2 = a_ray->x2();
 	ay2 = a_ray->y2();
 	
-	if(a_ray->x1() == a_ray->x2()) { // is vertical
+	if(std::abs(a_ray->x1() - a_ray->x2()) < 0.001) { // is vertical
 		//first point is coord of intersection 
 		bx1 = ax1;       
 		by1 = func(ax1); 
@@ -240,8 +260,8 @@ QLineF Reflector::reflected_ray(const QLineF *a_ray) {
 		float shift = (ax1>0)?M_PI/2:-1*M_PI/2;
 		float theta = std::atan((float)d_func(ax1))*2-shift;
 		//double r_slope = std::tan(theta);
-		double d_x = 15*std::cos(theta);
-		double d_y = 15*std::sin(theta);
+		double d_x = SCALER*15*std::cos(theta);
+		double d_y = SCALER*15*std::sin(theta);
 		
 		if(ax1<=0) {
 			bx2 = ax1 + d_x;

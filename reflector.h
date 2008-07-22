@@ -31,27 +31,31 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	#define SEMI 	3
 #endif
 
+#define SCALER 1024
+
 class Reflector {
 
 public:  
-	Reflector(double A, double minimum, double maximum);
+	Reflector(double A, double minimum, double maximum); // in units
 	
 	void draw(QPainter *painter);
-	QPointF intersection_coord(const QLineF *a_ray);
+	QPointF intersection_coord(const QLineF *a_ray); // in subunits
 	bool intersects(const QLineF *a_ray);
-	QLineF reflected_ray(const QLineF *a_ray);
+	QLineF reflected_ray(const QLineF *a_ray); // in subunits
 	void setAlpha(double a);
 	void setShape(const int s);
-	void setFmin(const double m);
-	void setFmax(const double m);
+	void setFmin(const double m); // in units
+	void setFmax(const double m); // in units
+	double fMin(); // in units
+	double fMax(); // in units
 	
 private:
-	double func(double x);
-	double d_func(double x);
+	double func(double x); // in subunits
+	double d_func(double x); // in subunits
 	int sign(double value);
-	QPointF reflect_point(QLineF *line, QPointF *point);
+	QPointF reflect_point(QLineF *line, QPointF *point);  //in subunits
 	
-	double x_min, x_max, range, a;
+	double x_min, x_max, range, a; // stored in subunits
 	int res;
 	int shape;
 };

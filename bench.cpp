@@ -26,23 +26,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "bench.h"
 
-double 	RaySpacing;
-double	Theta; // In degrees
-float w_right = 3.0;
-float w_left = -3.0;
-float w_top, w_bottom, w_width, w_height;
-float px_per_unit;
+Bench::Bench(QWidget *parent) 
+	: QWidget(parent), mirror(0.25, -2.0, 2.0) 
+	{
 
-QVector<QLineF> InitialRays;
-QVector<QLineF> FinalRays;
-
-Bench::Bench(QWidget *parent) : QWidget(parent), mirror(0.25, -2.0, 2.0) {
-	w_right = 3.0;
-	w_left = -3.0;
-	
-	RaySpacing = .125;
+	w_right = 3.0 * SCALER;
+	w_left = -3.0 * SCALER;
+	subunits_per_px = (6.0 * SCALER) / 400.0;
+	RaySpacing = .125  * SCALER;
 }
-
 
 void Bench::setTheta(int t) {
 	Theta = (double) t;
@@ -61,8 +53,8 @@ void Bench::setSemi(bool) {
 }
 
 void Bench::setRaySpacing(int s) {
-	RaySpacing = (double) s / 100.0;
-	emit spacingChanged((double) s / 100.0);
+	RaySpacing = (double) (s / 100.0) * SCALER;
+	emit spacingChanged((double) (s / 100.0) );
 	setLights();
 }
 void Bench::setReflectorMin(int min) {
@@ -84,25 +76,24 @@ void Bench::setAlpha(int alpha) { // slider widget only uses int's - alpha is in
 }
 
 void Bench::mousePressEvent(QMouseEvent *event) {
-	QPointF point = event->pos() - rect().center();
-	//setLights(90.0);
-	//InitialRays.append(QLineF(0,0,point.x(), point.y() ));
-    update();
+	event->ignore();
 }
-
-void Bench::paintEvent(QPaintEvent * /* event */) {
+		 
+void Bench::paintEvent(QPaintEvent *event) {
 	QMatrix reflectionMatrix(1, 0, 0, -1, 0.0, 0.0); // Defines a reflection over the x-axis
     QPainter painter(this);
 	painter.setMatrix(reflectionMatrix);
 
     painter.setRenderHint(QPainter::Antialiasing, true);
-	w_width = w_right - w_left;
-	px_per_unit = width() / w_width;
-	w_bottom = -1;
-	w_top = height() / px_per_unit + w_bottom;
+	w_width = subunits_per_px * width();
+	w_right = w_width/2.0;
+	w_left =  -1.0 * w_width/2.0;
+	//subunits_per_px = w_width / width();
+	w_bottom = -1 * SCALER;
+	w_top = subunits_per_px * height() + w_bottom;
 	w_height = w_top - w_bottom;
 	
-	window = QRect((int) w_left, -1 * (int) w_top, (int) w_width, (int) w_height);
+	window = QRect( (int) w_left, (int) (-1 * w_top), (int) w_width, (int) w_height);
 
     painter.setWindow(window);
 	setLights();
@@ -123,7 +114,7 @@ void Bench::drawGrid(QPainter *painter) {
 	QColor niceBlue(0,0,255);
     QPen   gridPen(niceBlue);
 	
-	painter->fillRect( (int) w_left, (int) w_bottom,(int) w_width, (int) w_height, QColor(255,255,255)); 
+	painter->fillRect( (int) w_left, (int) w_bottom, (int) w_width, (int) w_height, QColor(255,255,255)); 
 	painter->setPen(gridPen);
 	// Horizontal X-Axis
 	painter->drawLine( QLineF(w_left, 0.0, w_right, 0.0) );
@@ -147,8 +138,8 @@ void Bench::setLights() {
 		float y_inc = RaySpacing / std::cos(t);
 		float c_x1 = (theta < 90.0) ? w_right : w_left;
 		float c_y1 = w_top;
-		float c_x2 = c_x1 + (((theta < 90.0) ? -25 : 25 ) * std::cos(t));
-		float c_y2 = c_y1 - 25.0 * std::sin(t);
+		float c_x2 = c_x1 + (((theta < 90.0) ? -25 : 25 ) * SCALER*std::cos(t));
+		float c_y2 = c_y1 - SCALER*25.0 * std::sin(t);
 		
 		InitialRays.append( QLineF( c_x1, c_y1, c_x2, c_y2) );
 		int rays_across = (int) (w_width / x_inc);
