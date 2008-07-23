@@ -26,6 +26,7 @@ Bench::Bench(QWidget *parent)
 	w_left = -3.0 * SCALER;
 	subunits_per_px = (6.0 * SCALER) / 400.0;
 	RaySpacing = .125  * SCALER;
+	Receiver_Enabled = false;
 }
 
 void Bench::setTheta(int t) {
@@ -34,14 +35,17 @@ void Bench::setTheta(int t) {
 }
 void Bench::setParabola(bool) {
 	mirror.setShape(PARA);
+	runSimulation();	
 }
 
 void Bench::setCatenary(bool) {
 	mirror.setShape(CAT);
+	runSimulation();
 }
 
 void Bench::setSemi(bool) {
 	mirror.setShape(SEMI);
+	runSimulation();
 }
 
 void Bench::setRaySpacing(int s) {
@@ -49,6 +53,17 @@ void Bench::setRaySpacing(int s) {
 	emit spacingChanged((double) (s / 100.0) );
 	setLights();
 }
+
+void Bench::setReceiverEnabled(int state) {
+	if(state == Qt::Checked) {
+		Receiver_Enabled = true;
+	} else {
+		Receiver_Enabled = false;
+		hitsChanged(0.0);
+	}
+	runSimulation();	
+}
+	
 void Bench::setReflectorMin(int min) {
 	mirror.setFmin((double) min / 100.0);
 	emit reflectorMinChanged((double) min / 100.0);
@@ -70,15 +85,10 @@ void Bench::setAlpha(int alpha) { // slider widget only uses int's - alpha is in
 void Bench::mousePressEvent(QMouseEvent *event) {
 	event->ignore();
 }
-		 
-void Bench::paintEvent(QPaintEvent *event) {
-	QMatrix reflectionMatrix(1, 0, 0, -1, 0.0, 0.0); // Defines a reflection over the x-axis
-    QPainter painter(this);
-	painter.setMatrix(reflectionMatrix);
+
+void Bench::resizeEvent ( QResizeEvent * event ) {
 	double reflector_width;
-	
-    painter.setRenderHint(QPainter::Antialiasing, true);
-	
+
 	reflector_width = mirror.fMax() - mirror.fMin();
 	subunits_per_px = ( (100.0 * reflector_width / 70.0) * SCALER) / width();
 	w_width = subunits_per_px * width();
@@ -90,13 +100,22 @@ void Bench::paintEvent(QPaintEvent *event) {
 	w_height = w_top - w_bottom;
 	
 	window = QRect( (int) w_left, (int) (-1 * w_top), (int) w_width, (int) w_height);
-
-    painter.setWindow(window);
+	
 	setLights();
+}
+
+void Bench::paintEvent(QPaintEvent *event) {
+	QMatrix reflectionMatrix(1, 0, 0, -1, 0.0, 0.0); // Defines a reflection over the x-axis
+    QPainter painter(this);
+	painter.setMatrix(reflectionMatrix);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setWindow(window); // in case a resizeEvent updated it 
+	
 	drawGrid(&painter);	
     drawRays(&painter);
 	mirror.draw(&painter);
-	sink.draw(&painter);
+	if(Receiver_Enabled) 
+		sink.draw(&painter);
 }
 
 void Bench::drawRays(QPainter *painter) {
@@ -174,7 +193,8 @@ void Bench::runSimulation() {
 			
 		FinalRays.append(tmp);  // note- every input ray ends up in output array
 	}
-	hitsChanged( (double) sink.get_hits() / (0.25 * SCALER * 2 / RaySpacing));
+	if(Receiver_Enabled)
+		hitsChanged( (double) sink.get_hits() / (0.25 * SCALER * 2 / RaySpacing));
 	update(); // schedule a repaint of new rays
 	
 }
@@ -190,7 +210,7 @@ void Bench::bounce(QLineF *a_ray) {
 		ri = mirror.intersection_coord(a_ray);
 		go_reflect = true;
 	}
-	if(sink.intersects(a_ray)) {
+	if(Receiver_Enabled && sink.intersects(a_ray)) {
 		pi = sink.intersection_coord(a_ray);
 		go_receive = true;
 	}

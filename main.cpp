@@ -26,8 +26,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <QGroupBox>
 #include <QRadioButton>
 
-
-#include "reflector.h"
 #include "bench.h"
 
 int main(int argc, char *argv[])
@@ -159,8 +157,16 @@ int main(int argc, char *argv[])
 	// Receiver  Related Options Groupbox	
 	QGroupBox *sinkOptionsBox = new QGroupBox("Receiver Options");
 	QVBoxLayout *sinkOptionsLayout = new QVBoxLayout;
-	QHBoxLayout *hit_layout = new QHBoxLayout;
 	
+	QHBoxLayout *onoff_layout = new QHBoxLayout;
+	QCheckBox *onoffcheckbox = new QCheckBox("Enable");
+	QObject::connect(onoffcheckbox, SIGNAL(stateChanged(int)), 
+					b, SLOT(setReceiverEnabled(int)) );
+	onoffcheckbox->setCheckState(Qt::Checked);				
+	onoff_layout->addWidget(onoffcheckbox);
+	sinkOptionsLayout->addLayout(onoff_layout);	
+	
+	QHBoxLayout *hit_layout = new QHBoxLayout;
 	QLabel *hit_label = new QLabel("Light Received:");
 	QLabel *hit_value = new QLabel("0");
 	QLabel *mlabel = new QLabel("x");
@@ -171,6 +177,7 @@ int main(int argc, char *argv[])
 	hit_layout->addWidget(mlabel);
 	hit_layout->addStretch();
 	sinkOptionsLayout->addLayout(hit_layout);
+
 	sinkOptionsBox->setLayout(sinkOptionsLayout);
 	
 	// add option boxes to the sidebar
@@ -192,4 +199,3 @@ int main(int argc, char *argv[])
     window->show();
     return app.exec();
 }
-

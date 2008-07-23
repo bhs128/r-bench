@@ -91,8 +91,8 @@ bool Receiver::intersects(const QLineF *a_ray) {
 
 QPointF Receiver::intersection_coord(const QLineF *a_ray) {
 	double x1, y1, x2, y2; 
-	double int1_x, int1_y;
-	double int2_x, int2_y;
+	double int1_x; //, int1_y;
+	double int2_x; //, int2_y;
 	
 	if(std::abs(a_ray->x1() - a_ray->x2()) < 0.001) {
 		return QPointF(a_ray->x1(), center_y); 
@@ -119,10 +119,14 @@ QPointF Receiver::intersection_coord(const QLineF *a_ray) {
 }
 
 void Receiver::draw(QPainter *painter) {
-    QColor darkGrey(51,51,102);
-    QBrush fill(darkGrey, Qt::SolidPattern);
+    QColor black(0,0,0);
+    QPen stroke(black);
+
+    QColor darkPurple(51,51,102);
+    QBrush fill(darkPurple, Qt::SolidPattern);
+
     painter->setBrush(fill);
-	
+    painter->setPen(stroke);	
 	painter->drawEllipse( QRectF(center_x-radius, center_y-radius, radius*2.0, radius*2.0) );
 }
  

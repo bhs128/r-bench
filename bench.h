@@ -41,7 +41,7 @@ class Bench : public QWidget {
 
 public:
     Bench(QWidget *parent = 0);
-
+	
 signals:
 	void alphaChanged(double a); 
 	void reflectorMaxChanged(double a); // to update slider label accurately
@@ -50,25 +50,30 @@ signals:
 	void hitsChanged(double a); 
 	
 public slots:
+	// Light Source Related
 	void setTheta(int theta); // Change angle of incoming light
-	void setAlpha(int alpha); // Change reflector  scaleing factor
     void setRaySpacing(int s);
+	//Reflector Related	
 	void setParabola(bool);
 	void setCatenary(bool);
 	void setSemi(bool);
 	void setReflectorMin(int);
 	void setReflectorMax(int);
-	void runSimulation();
+	void setAlpha(int alpha); // Change reflector  scaleing factor
+	//Receiver Related	
+	void setReceiverEnabled(int);
 	
 protected:
     void paintEvent(QPaintEvent *event);
     void mousePressEvent(QMouseEvent *event);
+	void resizeEvent(QResizeEvent * event);
 
 private:
 	void setLights();
 	void bounce(QLineF *a_ray);	
 	void drawGrid(QPainter *painter);
     void drawRays(QPainter *painter);
+	void runSimulation();
 	
 	QRect  window;
 	Reflector mirror;
@@ -79,6 +84,7 @@ private:
 	float w_right, w_left, w_top, w_bottom, w_width, w_height;
 	float px_per_unit;
 	float subunits_per_px;
+	bool  Receiver_Enabled;
 	double 	RaySpacing;
 	double	Theta; // In degrees
 
