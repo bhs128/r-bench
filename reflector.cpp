@@ -102,7 +102,7 @@ double Reflector::fMax() {
 }
 
 void Reflector::draw(QPainter *painter) {
-    QColor darkGrey(64,64,64);
+    QColor darkGrey(196,196,196);
     QPen rPen(darkGrey);
     painter->setPen(rPen);
 	

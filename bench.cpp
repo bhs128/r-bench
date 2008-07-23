@@ -115,17 +115,24 @@ void Bench::drawRays(QPainter *painter) {
 }
 
 void Bench::drawGrid(QPainter *painter) {
-	QColor niceBlue(0,0,255);
-    QPen   gridPen(niceBlue);
+	QColor darkGrey(64,64,64,128);
+    QPen   gridPen(darkGrey);
 	
-	painter->fillRect( (int) w_left, (int) w_bottom, (int) w_width, (int) w_height, QColor(255,255,255)); 
+	painter->fillRect( (int) w_left, (int) w_bottom, (int) w_width, (int) w_height, QColor(0,0,0)); 
 	painter->setPen(gridPen);
-	// Horizontal X-Axis
-	painter->drawLine( QLineF(w_left, 0.0, w_right, 0.0) );
-	// Vertical Y-axis
-	painter->drawLine( QLineF(0.0, w_top, 0.0, w_bottom) );
+	// Horizontal grid lines
+	for(int y=0; y<w_top; y+=SCALER) {
+		painter->drawLine( QLineF(w_left, (float) y, w_right, (float) y) );
+		painter->drawLine( QLineF(w_left, (float) y * -1.0, w_right, (float) y * -1.0) );
+	}
+	// Vertical grid lines
+	for(int x=0; x<w_right; x+=SCALER)
+		painter->drawLine( QLineF((float) x, w_top, (float) x, w_bottom) );
+		
+	for(int x=0; x>w_left; x-=SCALER) 
+		painter->drawLine( QLineF((float) x, w_top, (float) x, w_bottom) );
+
 	
-	//painter->drawPoint(-1,-1);
 }
 
 void Bench::setLights() {
