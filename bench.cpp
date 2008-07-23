@@ -83,13 +83,17 @@ void Bench::paintEvent(QPaintEvent *event) {
 	QMatrix reflectionMatrix(1, 0, 0, -1, 0.0, 0.0); // Defines a reflection over the x-axis
     QPainter painter(this);
 	painter.setMatrix(reflectionMatrix);
-
+	double reflector_width;
+	
     painter.setRenderHint(QPainter::Antialiasing, true);
+	
+	reflector_width = mirror.fMax() - mirror.fMin();
+	subunits_per_px = ( (100.0 * reflector_width / 70.0) * SCALER) / width();
 	w_width = subunits_per_px * width();
-	w_right = w_width/2.0;
-	w_left =  -1.0 * w_width/2.0;
-	//subunits_per_px = w_width / width();
-	w_bottom = -1 * SCALER;
+	w_right = w_width*0.15 + mirror.fMax()* SCALER;
+	w_left =  mirror.fMin()* SCALER - w_width*0.15;
+	
+	w_bottom = -0.10 * subunits_per_px * height();
 	w_top = subunits_per_px * height() + w_bottom;
 	w_height = w_top - w_bottom;
 	
