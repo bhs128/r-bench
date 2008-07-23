@@ -20,12 +20,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef BENCH_H
 #define BENCH_H
 
+#include <QtGui>
 #include <QWidget>
 #include <QLineF>
 #include <QVector>
 #include <QRect>
+#include <cmath>
+
+#ifndef M_PI
+#define M_PI 3.14159265359
+#endif
 
 #include "reflector.h"
+#include "receiver.h"
 
 #define SCALER 1024
 
@@ -40,6 +47,7 @@ signals:
 	void reflectorMaxChanged(double a); // to update slider label accurately
 	void reflectorMinChanged(double a); 
 	void spacingChanged(double a); 
+	void hitsChanged(double a); 
 	
 public slots:
 	void setTheta(int theta); // Change angle of incoming light
@@ -64,6 +72,7 @@ private:
 	
 	QRect  window;
 	Reflector mirror;
+	Receiver sink;
 	QVector<QLineF> InitialRays;
 	QVector<QLineF> FinalRays;
 	

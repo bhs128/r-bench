@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <QGroupBox>
 #include <QRadioButton>
 
+
 #include "reflector.h"
 #include "bench.h"
 
@@ -155,10 +156,27 @@ int main(int argc, char *argv[])
 	reflectorOptionsLayout->addLayout(maxlayout);	
 
 	reflectorOptionsBox->setLayout(reflectorOptionsLayout);	
+	// Receiver  Related Options Groupbox	
+	QGroupBox *sinkOptionsBox = new QGroupBox("Receiver Options");
+	QVBoxLayout *sinkOptionsLayout = new QVBoxLayout;
+	QHBoxLayout *hit_layout = new QHBoxLayout;
+	
+	QLabel *hit_label = new QLabel("Light Received:");
+	QLabel *hit_value = new QLabel("0");
+	QLabel *mlabel = new QLabel("x");
+	QObject::connect(b, SIGNAL(hitsChanged(double)), 
+					 hit_value, SLOT(setNum(double)) );
+	hit_layout->addWidget(hit_label);
+	hit_layout->addWidget(hit_value);
+	hit_layout->addWidget(mlabel);
+	hit_layout->addStretch();
+	sinkOptionsLayout->addLayout(hit_layout);
+	sinkOptionsBox->setLayout(sinkOptionsLayout);
 	
 	// add option boxes to the sidebar
 	sidebarLayout->addWidget(inputOptionsBox);
 	sidebarLayout->addWidget(reflectorOptionsBox);
+	sidebarLayout->addWidget(sinkOptionsBox);
 	sidebarLayout->addStretch();
 	
 	// Put everything together in the outer layout

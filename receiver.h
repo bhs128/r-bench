@@ -17,52 +17,30 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ******************************************************************************/
-#ifndef REFLECTOR_H
-#define REFLECTOR_H
+#ifndef RECEIVER_H
+#define RECEIVER_H
 
 #include <QtGui>
 #include <QLineF>
 #include <QPointF>
+#include <QRectF>
 #include <cmath>
 
-#ifndef M_PI
-#define M_PI 3.14159265359
-#endif
-
-#ifndef SHAPES
-	#define SHAPES
-	#define PARA	1
-	#define CAT		2
-	#define SEMI 	3
-#endif
-
 #define SCALER 1024
-
-class Reflector {
+class Receiver {
 
 public:  
-	Reflector(double A, double minimum, double maximum); // in units
-	
-	void draw(QPainter *painter);
-	QPointF intersection_coord(const QLineF *a_ray); // in subunits
+	Receiver(double x, double y, double r);
+	void reset_hits();
+	void got_hit();
+	int get_hits();
 	bool intersects(const QLineF *a_ray);
-	QLineF reflected_ray(const QLineF *a_ray); // in subunits
-	void setAlpha(double a);
-	void setShape(const int s);
-	void setFmin(const double m); // in units
-	void setFmax(const double m); // in units
-	double fMin(); // in units
-	double fMax(); // in units
+	QPointF intersection_coord(const QLineF *a_ray);
+	void draw(QPainter *painter);
 	
 private:
-	double func(double x); // in subunits
-	double d_func(double x); // in subunits
-	int sign(double value);
-	QPointF reflect_point(QLineF *line, QPointF *point);  //in subunits
-	
-	double x_min, x_max, range, a; // stored in subunits
-	int res;
-	int shape;
+	double center_x, center_y, radius;
+	int hits;   
 };
 
 #endif

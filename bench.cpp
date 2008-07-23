@@ -17,19 +17,11 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ******************************************************************************/
-#include <QtGui>
-#include <cmath>
-
-#ifndef M_PI
-#define M_PI 3.14159265359
-#endif
-
 #include "bench.h"
 
 Bench::Bench(QWidget *parent) 
-	: QWidget(parent), mirror(0.25, -2.0, 2.0) 
+	: QWidget(parent), mirror(0.25, -2.0, 2.0), sink(0.0, 1.0, 0.25) 
 	{
-
 	w_right = 3.0 * SCALER;
 	w_left = -3.0 * SCALER;
 	subunits_per_px = (6.0 * SCALER) / 400.0;
@@ -104,6 +96,7 @@ void Bench::paintEvent(QPaintEvent *event) {
 	drawGrid(&painter);	
     drawRays(&painter);
 	mirror.draw(&painter);
+	sink.draw(&painter);
 }
 
 void Bench::drawRays(QPainter *painter) {
@@ -174,21 +167,54 @@ void Bench::setLights() {
 
 void Bench::runSimulation() {
 	FinalRays.resize(0);  // reset array to null
-	
+	sink.reset_hits();
 	for(int ridx = 0; ridx < InitialRays.size(); ridx++) {
 		QLineF tmp(InitialRays[ridx]); // copy constructor
 		bounce( &tmp ); 
 			
 		FinalRays.append(tmp);  // note- every input ray ends up in output array
 	}
+	hitsChanged( (double) sink.get_hits() / (0.25 * SCALER * 2 / RaySpacing));
 	update(); // schedule a repaint of new rays
+	
 }
 
 void Bench::bounce(QLineF *a_ray) {
 	QLineF temp;
 	QPointF pivot;
-
+	QPointF pi, ri; // pipe intersection, & reflector intersection
+	bool go_reflect = false;
+	bool go_receive = false;
+	
 	if(mirror.intersects(a_ray)) {
+		ri = mirror.intersection_coord(a_ray);
+		go_reflect = true;
+	}
+	if(sink.intersects(a_ray)) {
+		pi = sink.intersection_coord(a_ray);
+		go_receive = true;
+	}
+	
+	// does ray intersect both receiver & reflector?    
+	if(go_receive && go_reflect) {      
+		double pipe_dist = std::sqrt(std::pow(a_ray->x1() - pi.x(),2) + std::pow(a_ray->y1() - pi.y(), 2));
+		double ref_dist  = std::sqrt(std::pow(a_ray->x1() - ri.x(),2) + std::pow(a_ray->y1() - ri.y(), 2));
+		
+		// - which one does it hit first?
+		if(pipe_dist < ref_dist) {
+			go_reflect = false; // hit pipe first, don't reflect it
+		} else {
+			go_receive = false; // hit reflctor first, don't absorb it
+		}
+	}
+	
+	if(go_receive) {
+		// Ray stops at receiver
+		a_ray->setP2(pi);
+		sink.got_hit();
+	}
+	
+	if(go_reflect) {
 		temp = mirror.reflected_ray(a_ray);
 		pivot = mirror.intersection_coord(a_ray);
 		a_ray->setP2(pivot);
