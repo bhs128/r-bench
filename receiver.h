@@ -26,6 +26,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <QRectF>
 #include <cmath>
 
+#ifndef REC_SHAPES
+	#define REC_SHAPES
+	#define CIRCLE	1
+	#define LINE	2
+#endif
+
 #define SCALER 1024
 
 class Receiver {
@@ -35,16 +41,21 @@ public:
 	void reset_hits();
 	void got_hit();
 	int get_hits();
-	void setRadius(double r);
-	double getRadius();
+	void setSize(double s);
+	void setAngle(int a);
+	void setShape(int s);
+	double getSize();
 	void setCenter(double x, double y);
 	bool intersects(const QLineF *a_ray);
 	QPointF intersection_coord(const QLineF *a_ray);
 	void draw(QPainter *painter);
 	
 private:
-	double center_x, center_y, radius;
-	int hits;   
+	void calculateLine();
+	
+	QLineF panel;
+	double center_x, center_y, size, angle;
+	int hits, shape;   
 };
 
 #endif

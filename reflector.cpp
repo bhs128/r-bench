@@ -31,6 +31,7 @@ Reflector::Reflector(double A, double minimum, double maximum) {
 double Reflector::func(double x) { //one (or more) equations describing the reflector shape
 	double radius;
 	double answer;
+	double max_radius = ((std::abs(x_min)>x_max)?std::abs(x_min):x_max) / (double) SCALER;
 	x = x / (double) SCALER;
 	
 	switch(shape) {
@@ -38,7 +39,7 @@ double Reflector::func(double x) { //one (or more) equations describing the refl
 			answer = a*(x*x); // Parabola
 			break;
 		case SEMI:
-			radius = a * -6.0 + 9.0;
+			radius = a * (-4.0 * max_radius) + max_radius*5.01;
 			answer = -1 * std::sqrt((float) (radius*radius-x*x))+radius; // semicircle
 			break;
 		case CAT:
@@ -52,6 +53,7 @@ double Reflector::func(double x) { //one (or more) equations describing the refl
 double Reflector::d_func(double x) { // the derivative function of func()
 	double radius;
 	double answer;
+	double max_radius = ((std::abs(x_min)>x_max)?std::abs(x_min):x_max) / (double) SCALER;
 	x = x / (double) SCALER;	
 
 	switch(shape) {
@@ -59,7 +61,7 @@ double Reflector::d_func(double x) { // the derivative function of func()
 			answer = a*2*x; // Parabola	
 			break;
 		case SEMI:
-			radius = a * -6.0 + 9.0;
+			radius = a * (-4.0 * max_radius) + max_radius*5.01;
 			answer = x / std::sqrt((float) (radius*radius-x*x));// semicircle
 			break;
 		case CAT:
@@ -253,8 +255,8 @@ QLineF Reflector::reflected_ray(const QLineF *a_ray) {
 		float shift = (ax1>0)?M_PI/2:-1*M_PI/2;
 		float theta = std::atan((float)d_func(ax1))*2-shift;
 		//double r_slope = std::tan(theta);
-		double d_x = SCALER*15*std::cos(theta);
-		double d_y = SCALER*15*std::sin(theta);
+		double d_x = SCALER*50*std::cos(theta);
+		double d_y = SCALER*50*std::sin(theta);
 		
 		if(ax1<=0) {
 			bx2 = ax1 + d_x;

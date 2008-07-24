@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <QWidget>
 #include <QGroupBox>
 #include <QRadioButton>
+#include <QDoubleSpinBox>
 
 #include "bench.h"
 
@@ -55,7 +56,6 @@ int main(int argc, char *argv[])
 	QObject::connect(tSlider, SIGNAL(valueChanged(int)), 
 					 tvalue, SLOT(setNum(int)) );
 	tSlider->setValue(90);
-	
 	tlayout->addWidget(tlabel);
 	tlayout->addWidget(tSlider);
 	tlayout->addWidget(tvalue);
@@ -95,7 +95,6 @@ int main(int argc, char *argv[])
 	QObject::connect(b, SIGNAL(alphaChanged(double)), 
 					 avalue, SLOT(setNum(double)) );
 	aSlider->setValue(50);	
-	
 	alayout->addWidget(alabel);
 	alayout->addWidget(aSlider);
 	alayout->addWidget(avalue);
@@ -111,7 +110,6 @@ int main(int argc, char *argv[])
 	QObject::connect(shape_semi, SIGNAL(toggled(bool)), 
 					b, SLOT(setSemi(bool)) );			
 	shape_catenary->toggle();
-	
 	QGroupBox *shapeGroupBox = new QGroupBox("Base Shape");
 	QVBoxLayout *shapeLayout = new QVBoxLayout;
 	shapeLayout->addWidget(shape_parabola);
@@ -121,37 +119,24 @@ int main(int argc, char *argv[])
 	shapeGroupBox->setFlat(true);
 	reflectorOptionsLayout->addWidget(shapeGroupBox);
 
-	QHBoxLayout *minlayout = new QHBoxLayout;
-	QLabel *minlabel = new QLabel("Min x:");
-	QLabel *minvalue = new QLabel("0.00");
-	minvalue->setFixedWidth(30);
-	QSlider *minSlider = new QSlider(Qt::Horizontal);
-	minSlider->setRange(-300,-1);
-	QObject::connect(minSlider, SIGNAL(valueChanged(int)), 
-					b, SLOT(setReflectorMin(int)) );
-	QObject::connect(b, SIGNAL(reflectorMinChanged(double)), 
-					 minvalue, SLOT(setNum(double)) );
-	minSlider->setValue(-250);	
-	minlayout->addWidget(minlabel);
-	minlayout->addWidget(minSlider);
-	minlayout->addWidget(minvalue);
-	reflectorOptionsLayout->addLayout(minlayout);
-
-	QHBoxLayout *maxlayout = new QHBoxLayout;
-	QLabel *maxlabel = new QLabel("Max x:");
-	QLabel *maxvalue = new QLabel("0.00");
-	maxvalue->setFixedWidth(30);
-	QSlider *maxSlider = new QSlider(Qt::Horizontal);
-	maxSlider->setRange(1,300);
-	QObject::connect(maxSlider, SIGNAL(valueChanged(int)), 
-					b, SLOT(setReflectorMax(int)) );
-	QObject::connect(b, SIGNAL(reflectorMaxChanged(double)), 
-					 maxvalue, SLOT(setNum(double)) );
-	maxSlider->setValue(250);	
-	maxlayout->addWidget(maxlabel);
-	maxlayout->addWidget(maxSlider);
-	maxlayout->addWidget(maxvalue);
-	reflectorOptionsLayout->addLayout(maxlayout);	
+	QHBoxLayout *rangelayout = new QHBoxLayout;
+	QLabel *rangelabel = new QLabel("Range:");
+	QDoubleSpinBox *minspin = new QDoubleSpinBox;
+	minspin->setRange(-8.0,-0.05);
+	minspin->setSingleStep(0.05);
+	QObject::connect(minspin, SIGNAL(valueChanged(double)), 
+					b, SLOT(setReflectorMin(double)) );
+	minspin->setValue(-2.5);
+	QDoubleSpinBox *maxspin = new QDoubleSpinBox;
+	maxspin->setRange(0.05,8.0);
+	maxspin->setSingleStep(0.05);
+	QObject::connect(maxspin, SIGNAL(valueChanged(double)), 
+					b, SLOT(setReflectorMax(double)) );
+	maxspin->setValue(2.5);
+	rangelayout->addWidget(rangelabel);
+	rangelayout->addWidget(minspin);
+	rangelayout->addWidget(maxspin);
+	reflectorOptionsLayout->addLayout(rangelayout);	
 
 	reflectorOptionsBox->setLayout(reflectorOptionsLayout);	
 	// Receiver  Related Options Groupbox	
@@ -165,6 +150,54 @@ int main(int argc, char *argv[])
 	onoffcheckbox->setCheckState(Qt::Checked);				
 	onoff_layout->addWidget(onoffcheckbox);
 	sinkOptionsLayout->addLayout(onoff_layout);	
+
+
+	QHBoxLayout *rlayout = new QHBoxLayout;
+	QLabel *rlabel = new QLabel("Size:");
+	QLabel *rvalue = new QLabel("0.25");
+	rvalue->setFixedWidth(30);
+	QSlider *rSlider = new QSlider(Qt::Horizontal);
+	rSlider->setRange(10,200);
+	QObject::connect(rSlider, SIGNAL(valueChanged(int)), 
+					b, SLOT(setSize(int)) );
+	QObject::connect(b, SIGNAL(radiusChanged(double)), 
+					 rvalue, SLOT(setNum(double)) );
+	rSlider->setValue(25);
+	rlayout->addWidget(rlabel);
+	rlayout->addWidget(rSlider);
+	rlayout->addWidget(rvalue);
+	sinkOptionsLayout->addLayout(rlayout);	
+	
+	QHBoxLayout *stlayout = new QHBoxLayout;
+	QLabel *stlabel = new QLabel("Angle:");
+	QLabel *stvalue = new QLabel("0");
+	stvalue->setFixedWidth(30);
+	QSlider *stSlider = new QSlider(Qt::Horizontal);
+	stSlider->setRange(0,360);
+	QObject::connect(stSlider, SIGNAL(valueChanged(int)), 
+					b, SLOT(setAngle(int)) );
+	QObject::connect(stSlider, SIGNAL(valueChanged(int)), 
+					 stvalue, SLOT(setNum(int)) );
+	stSlider->setValue(180);
+	stlayout->addWidget(stlabel);
+	stlayout->addWidget(stSlider);
+	stlayout->addWidget(stvalue);
+	sinkOptionsLayout->addLayout(stlayout);
+
+	QRadioButton *shape_pipe = new QRadioButton("Circle");
+	QRadioButton *shape_panel = new QRadioButton("Line");
+	QObject::connect(shape_pipe, SIGNAL(toggled(bool)), 
+					b, SLOT(setPipe(bool)) );
+	QObject::connect(shape_panel, SIGNAL(toggled(bool)), 
+					b, SLOT(setPanel(bool)) );		
+	shape_pipe->toggle();
+	QGroupBox *pGroupBox = new QGroupBox("Receiver Shape");
+	QVBoxLayout *pLayout = new QVBoxLayout;
+	pLayout->addWidget(shape_panel);
+	pLayout->addWidget(shape_pipe);
+	pGroupBox->setLayout(pLayout);
+	pGroupBox->setFlat(true);
+	sinkOptionsLayout->addWidget(pGroupBox);
 	
 	QHBoxLayout *hit_layout = new QHBoxLayout;
 	QLabel *hit_label = new QLabel("Light Received:");
@@ -176,24 +209,9 @@ int main(int argc, char *argv[])
 	hit_layout->addWidget(hit_value);
 	hit_layout->addWidget(mlabel);
 	hit_layout->addStretch();
-	sinkOptionsLayout->addLayout(hit_layout);
-
-	QHBoxLayout *rlayout = new QHBoxLayout;
-	QLabel *rlabel = new QLabel("Radius:");
-	QLabel *rvalue = new QLabel("0.25");
-	rvalue->setFixedWidth(30);
-	QSlider *rSlider = new QSlider(Qt::Horizontal);
-	rSlider->setRange(10,50);
-	QObject::connect(rSlider, SIGNAL(valueChanged(int)), 
-					b, SLOT(setRadius(int)) );
-	QObject::connect(b, SIGNAL(radiusChanged(double)), 
-					 rvalue, SLOT(setNum(double)) );
-	rSlider->setValue(25);
+	sinkOptionsLayout->addLayout(hit_layout);	
 	
-	rlayout->addWidget(rlabel);
-	rlayout->addWidget(rSlider);
-	rlayout->addWidget(rvalue);
-	sinkOptionsLayout->addLayout(rlayout);
+
 	
 	sinkOptionsBox->setLayout(sinkOptionsLayout);
 	
@@ -212,7 +230,7 @@ int main(int argc, char *argv[])
 	
 	window->setLayout(outerLayout);
 
-	window->resize(640, 480);
+	window->resize(800, 600);
     window->show();
     return app.exec();
 }

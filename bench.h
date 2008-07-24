@@ -45,8 +45,6 @@ public:
 signals:
 	void spacingChanged(double a);
 
-	void reflectorMaxChanged(double a); // to update slider label accurately
-	void reflectorMinChanged(double a); 
  	void alphaChanged(double a); 
 
 	void hitsChanged(double a); 
@@ -60,12 +58,15 @@ public slots:
 	void setParabola(bool);
 	void setCatenary(bool);
 	void setSemi(bool);
-	void setReflectorMin(int);
-	void setReflectorMax(int);
+	void setReflectorMin(double);
+	void setReflectorMax(double);
 	void setAlpha(int alpha); // Change reflector  scaleing factor
 	//Receiver Related	
 	void setReceiverEnabled(int);
-	void setRadius(int);
+	void setSize(int);
+	void setAngle(int);
+	void setPanel(bool);
+	void setPipe(bool);
 	
 protected:
     void paintEvent(QPaintEvent *event);

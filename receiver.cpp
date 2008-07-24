@@ -19,11 +19,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ******************************************************************************/
 #include "receiver.h"
 
-Receiver::Receiver(double x, double y, double r) {
+Receiver::Receiver(double x, double y, double s) {
 	center_x = x * SCALER;
 	center_y = y * SCALER;
-	radius = r * SCALER;
-	
+	size = s * SCALER;
+	shape=LINE;
+	angle = 0.0;
+	panel.setLine(center_x-size, center_y, center_x+size, center_y);
 	hits = 0;
 }
 void Receiver::reset_hits() {
@@ -38,20 +40,39 @@ int Receiver::get_hits() {
 	return hits;
 }
 
-void Receiver::setRadius(double r) {
-	radius = r * SCALER;
+void Receiver::setSize(double s) {
+	size = s * SCALER;
+	calculateLine();
 }
 
-double Receiver::getRadius() {
-	return radius;
+double Receiver::getSize() {
+	return size;
 }
 
+void Receiver::setShape(int s) {
+	shape = s;
+}
 void Receiver::setCenter(double x, double y) {
+	panel.translate(x-center_x,y-center_y);
 	center_x = x;
 	center_y = y;
 }
 
+void Receiver::setAngle(int a) {
+	angle = (double) a;
+	calculateLine();
+}
+
 bool Receiver::intersects(const QLineF *a_ray) {
+	if(shape == LINE) {
+		QPointF *answer = new QPointF();
+		if(a_ray->intersect(panel, answer) == QLineF::BoundedIntersection) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
 	double x1, y1, x2, y2; 
 	x1 = a_ray->x1();
 	y1 = a_ray->y1();
@@ -59,29 +80,29 @@ bool Receiver::intersects(const QLineF *a_ray) {
 	y2 = a_ray->y2();
 	
 	if( std::abs(a_ray->x1() - a_ray->x2()) < 0.001 ) {
-		if(x1 < center_x - radius) {
+		if(x1 < center_x - size) {
 			return false;
 		}
-		if(x1 > center_x + radius) {
+		if(x1 > center_x + size) {
 			return false;
 		}   
-		if( y1 > center_y + radius && y2 < center_y - radius ) { // does it start above and end below?
+		if( y1 > center_y + size && y2 < center_y - size ) { // does it start above and end below?
 			return true; 
 		} else {
 			return false;
 		} 
 	}
 	// easy outs
-	if((x1 < x2) && (center_x < x1 - radius)) 
+	if((x1 < x2) && (center_x < x1 - size)) 
 	return false;
 	
-	if((x1 > x2) && (center_x > x1 + radius)) 
+	if((x1 > x2) && (center_x > x1 + size)) 
 	return false;
 	
-	if((y1 < y2) && (center_y < y1 - radius)) 
+	if((y1 < y2) && (center_y < y1 - size)) 
 	return false;
 	
-	if((y1 > y2) && (center_x > y1 + radius)) 
+	if((y1 > y2) && (center_x > y1 + size)) 
 	return false;
 	
 	// translate points so the circle is at the origin
@@ -93,7 +114,7 @@ bool Receiver::intersects(const QLineF *a_ray) {
 	//full equation method
 	double slope = (a_ray->y2() - a_ray->y1())/(a_ray->x2() - a_ray->x1());
 	double b = slope*-1*x1+y1;
-	double disc = (radius*radius)-(b*b)+(slope*slope)*(radius*radius); //(slope*slope+1)*(radius*radius)-(b*b);
+	double disc = (size*size)-(b*b)+(slope*slope)*(size*size); //(slope*slope+1)*(size*size)-(b*b);
 	
 	if(disc > 0) {
 		return true;
@@ -103,6 +124,13 @@ bool Receiver::intersects(const QLineF *a_ray) {
 }
 
 QPointF Receiver::intersection_coord(const QLineF *a_ray) {
+	if(shape == LINE) {
+		QPointF *answer = new QPointF();
+		if(a_ray->intersect(panel, answer) == QLineF::BoundedIntersection) {
+			return QPointF(answer->x(), answer->y());
+		} 
+	}
+
 	double x1, y1, x2, y2; 
 	double int1_x; //, int1_y;
 	double int2_x; //, int2_y;
@@ -124,7 +152,7 @@ QPointF Receiver::intersection_coord(const QLineF *a_ray) {
 	//full equation method
 	double m = (a_ray->y2() - a_ray->y1())/(a_ray->x2() - a_ray->x1());
 	double b = m * -1 * x1 + y1;
-	double disc = (radius*radius)-(b*b)+(m*m)*(radius*radius);
+	double disc = (size*size)-(b*b)+(m*m)*(size*size);
 	int1_x = (-1*m*b+std::sqrt((float) disc))/(1+m*m);
 	int2_x = (-1*m*b-std::sqrt((float) disc))/(1+m*m);
 	
@@ -132,14 +160,28 @@ QPointF Receiver::intersection_coord(const QLineF *a_ray) {
 }
 
 void Receiver::draw(QPainter *painter) {
-    QColor black(0,0,0);
+    QColor black(255,255,255);
     QPen stroke(black);
 
     QColor darkPurple(51,51,102);
     QBrush fill(darkPurple, Qt::SolidPattern);
 
     painter->setBrush(fill);
-    painter->setPen(stroke);	
-	painter->drawEllipse( QRectF(center_x-radius, center_y-radius, radius*2.0, radius*2.0) );
+    painter->setPen(stroke);
+	
+	switch(shape) {
+		case CIRCLE:
+			painter->drawEllipse( QRectF(center_x-size, center_y-size, size*2.0, size*2.0) );
+			break;
+		case LINE:
+			painter->drawLine(panel);
+			break;
+	}
 }
- 
+
+void Receiver::calculateLine() {
+	panel.setLine(center_x + size*std::cos(angle*0.0174532925),
+				  center_y + size*std::sin(angle*0.0174532925),
+				  center_x - size*std::cos(angle*0.0174532925),
+				  center_y - size*std::sin(angle*0.0174532925));
+}

@@ -48,6 +48,16 @@ void Bench::setSemi(bool) {
 	runSimulation();
 }
 
+void Bench::setPanel(bool) {
+	sink.setShape(LINE);
+	runSimulation();
+}
+
+void Bench::setPipe(bool) {
+	sink.setShape(CIRCLE);
+	runSimulation();
+}
+
 void Bench::setRaySpacing(int s) {
 	RaySpacing = (double) (s / 100.0) * SCALER;
 	emit spacingChanged((double) (s / 100.0) );
@@ -64,16 +74,14 @@ void Bench::setReceiverEnabled(int state) {
 	runSimulation();	
 }
 	
-void Bench::setReflectorMin(int min) {
-	mirror.setFmin((double) min / 100.0);
-	emit reflectorMinChanged((double) min / 100.0);
+void Bench::setReflectorMin(double min) {
+	mirror.setFmin(min);
 	calculateWindow();
 	runSimulation();
 }
 
-void Bench::setReflectorMax(int max) { // slider widget only uses int's - max is in hundredths
-	mirror.setFmax((double) max / 100.0);
-	emit reflectorMaxChanged((double) max / 100.0);
+void Bench::setReflectorMax(double max) { // slider widget only uses int's - max is in hundredths
+	mirror.setFmax(max);
 	calculateWindow();
 	runSimulation();
 }
@@ -84,9 +92,14 @@ void Bench::setAlpha(int alpha) { // slider widget only uses int's - alpha is in
 	runSimulation();
 }
 
-void Bench::setRadius(int r) {
-	sink.setRadius((double) r / 100.0);
+void Bench::setSize(int r) {
+	sink.setSize((double) r / 100.0);
 	emit radiusChanged((double) r / 100.0);
+	runSimulation();
+}
+
+void Bench::setAngle(int a) {
+	sink.setAngle(a);
 	runSimulation();
 }
 
@@ -178,8 +191,8 @@ void Bench::setLights() {
 		float y_inc = RaySpacing / std::cos(t);
 		float c_x1 = (theta < 90.0) ? w_right : w_left;
 		float c_y1 = w_top;
-		float c_x2 = c_x1 + (((theta < 90.0) ? -25 : 25 ) * SCALER*std::cos(t));
-		float c_y2 = c_y1 - SCALER*25.0 * std::sin(t);
+		float c_x2 = c_x1 + (((theta < 90.0) ? -50 : 50 ) * SCALER*std::cos(t));
+		float c_y2 = c_y1 - SCALER*50.0 * std::sin(t);
 		
 		InitialRays.append( QLineF( c_x1, c_y1, c_x2, c_y2) );
 		int rays_across = (int) (w_width / x_inc);
@@ -211,7 +224,7 @@ void Bench::runSimulation() {
 		FinalRays.append(tmp);  // note- every input ray ends up in output array
 	}
 	if(Receiver_Enabled)
-		hitsChanged((int) ( (double) sink.get_hits() / (sink.getRadius() * 2.0 / RaySpacing) *100.0 ) / 100.0);
+		hitsChanged((int) ( (double) sink.get_hits() / (sink.getSize() * 2.0 / RaySpacing) *100.0 ) / 100.0);
 	update(); // schedule a repaint of new rays
 	
 }
