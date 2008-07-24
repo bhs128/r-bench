@@ -43,11 +43,14 @@ public:
     Bench(QWidget *parent = 0);
 	
 signals:
-	void alphaChanged(double a); 
+	void spacingChanged(double a);
+
 	void reflectorMaxChanged(double a); // to update slider label accurately
 	void reflectorMinChanged(double a); 
-	void spacingChanged(double a); 
+ 	void alphaChanged(double a); 
+
 	void hitsChanged(double a); 
+	void radiusChanged(double r);
 	
 public slots:
 	// Light Source Related
@@ -62,6 +65,7 @@ public slots:
 	void setAlpha(int alpha); // Change reflector  scaleing factor
 	//Receiver Related	
 	void setReceiverEnabled(int);
+	void setRadius(int);
 	
 protected:
     void paintEvent(QPaintEvent *event);
@@ -74,6 +78,7 @@ private:
 	void drawGrid(QPainter *painter);
     void drawRays(QPainter *painter);
 	void runSimulation();
+	void calculateWindow();
 	
 	QRect  window;
 	Reflector mirror;

@@ -43,8 +43,8 @@ int main(int argc, char *argv[])
 	// Light Related Options Groupbox
 	QGroupBox *inputOptionsBox = new QGroupBox("Incoming Ray Options");
 	QVBoxLayout *inputOptionsLayout = new QVBoxLayout;
+
 	QHBoxLayout *tlayout = new QHBoxLayout;
-	
 	QLabel *tlabel = new QLabel("Theta:");
 	QLabel *tvalue = new QLabel("90");
 	tvalue->setFixedWidth(30);
@@ -178,6 +178,23 @@ int main(int argc, char *argv[])
 	hit_layout->addStretch();
 	sinkOptionsLayout->addLayout(hit_layout);
 
+	QHBoxLayout *rlayout = new QHBoxLayout;
+	QLabel *rlabel = new QLabel("Radius:");
+	QLabel *rvalue = new QLabel("0.25");
+	rvalue->setFixedWidth(30);
+	QSlider *rSlider = new QSlider(Qt::Horizontal);
+	rSlider->setRange(10,50);
+	QObject::connect(rSlider, SIGNAL(valueChanged(int)), 
+					b, SLOT(setRadius(int)) );
+	QObject::connect(b, SIGNAL(radiusChanged(double)), 
+					 rvalue, SLOT(setNum(double)) );
+	rSlider->setValue(25);
+	
+	rlayout->addWidget(rlabel);
+	rlayout->addWidget(rSlider);
+	rlayout->addWidget(rvalue);
+	sinkOptionsLayout->addLayout(rlayout);
+	
 	sinkOptionsBox->setLayout(sinkOptionsLayout);
 	
 	// add option boxes to the sidebar

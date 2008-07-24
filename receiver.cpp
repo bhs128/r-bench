@@ -38,6 +38,19 @@ int Receiver::get_hits() {
 	return hits;
 }
 
+void Receiver::setRadius(double r) {
+	radius = r * SCALER;
+}
+
+double Receiver::getRadius() {
+	return radius;
+}
+
+void Receiver::setCenter(double x, double y) {
+	center_x = x;
+	center_y = y;
+}
+
 bool Receiver::intersects(const QLineF *a_ray) {
 	double x1, y1, x2, y2; 
 	x1 = a_ray->x1();

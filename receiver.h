@@ -35,6 +35,9 @@ public:
 	void reset_hits();
 	void got_hit();
 	int get_hits();
+	void setRadius(double r);
+	double getRadius();
+	void setCenter(double x, double y);
 	bool intersects(const QLineF *a_ray);
 	QPointF intersection_coord(const QLineF *a_ray);
 	void draw(QPainter *painter);

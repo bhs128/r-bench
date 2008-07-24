@@ -67,12 +67,14 @@ void Bench::setReceiverEnabled(int state) {
 void Bench::setReflectorMin(int min) {
 	mirror.setFmin((double) min / 100.0);
 	emit reflectorMinChanged((double) min / 100.0);
+	calculateWindow();
 	runSimulation();
 }
 
 void Bench::setReflectorMax(int max) { // slider widget only uses int's - max is in hundredths
 	mirror.setFmax((double) max / 100.0);
 	emit reflectorMaxChanged((double) max / 100.0);
+	calculateWindow();
 	runSimulation();
 }
 	
@@ -82,11 +84,26 @@ void Bench::setAlpha(int alpha) { // slider widget only uses int's - alpha is in
 	runSimulation();
 }
 
+void Bench::setRadius(int r) {
+	sink.setRadius((double) r / 100.0);
+	emit radiusChanged((double) r / 100.0);
+	runSimulation();
+}
+
 void Bench::mousePressEvent(QMouseEvent *event) {
-	event->ignore();
+	QPointF pos;
+	
+	pos = event->posF();
+	sink.setCenter(pos.x() * subunits_per_px + w_left, 
+				   (pos.y() * subunits_per_px - w_top) * -1.0);
+	runSimulation();
 }
 
 void Bench::resizeEvent ( QResizeEvent * event ) {
+	calculateWindow();
+}
+
+void Bench::calculateWindow() {
 	double reflector_width;
 
 	reflector_width = mirror.fMax() - mirror.fMin();
@@ -194,7 +211,7 @@ void Bench::runSimulation() {
 		FinalRays.append(tmp);  // note- every input ray ends up in output array
 	}
 	if(Receiver_Enabled)
-		hitsChanged( (double) sink.get_hits() / (0.25 * SCALER * 2 / RaySpacing));
+		hitsChanged((int) ( (double) sink.get_hits() / (sink.getRadius() * 2.0 / RaySpacing) *100.0 ) / 100.0);
 	update(); // schedule a repaint of new rays
 	
 }
