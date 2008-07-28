@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <QGroupBox>
 #include <QRadioButton>
 #include <QDoubleSpinBox>
+#include <QComboBox>
 
 #include "bench.h"
 
@@ -157,7 +158,7 @@ int main(int argc, char *argv[])
 	QLabel *rvalue = new QLabel("0.25");
 	rvalue->setFixedWidth(30);
 	QSlider *rSlider = new QSlider(Qt::Horizontal);
-	rSlider->setRange(10,200);
+	rSlider->setRange(4,200);
 	QObject::connect(rSlider, SIGNAL(valueChanged(int)), 
 					b, SLOT(setSize(int)) );
 	QObject::connect(b, SIGNAL(radiusChanged(double)), 
@@ -200,18 +201,31 @@ int main(int argc, char *argv[])
 	sinkOptionsLayout->addWidget(pGroupBox);
 	
 	QHBoxLayout *hit_layout = new QHBoxLayout;
-	QLabel *hit_label = new QLabel("Light Received:");
+	QLabel *hit_label = new QLabel("Power Gathered:");
 	QLabel *hit_value = new QLabel("0");
-	QLabel *mlabel = new QLabel("x");
+	QLabel *mlabel = new QLabel("watts/unit");
 	QObject::connect(b, SIGNAL(hitsChanged(double)), 
 					 hit_value, SLOT(setNum(double)) );
+	hit_value->setFixedWidth(30);
 	hit_layout->addWidget(hit_label);
 	hit_layout->addWidget(hit_value);
 	hit_layout->addWidget(mlabel);
 	hit_layout->addStretch();
 	sinkOptionsLayout->addLayout(hit_layout);	
 	
-
+	QHBoxLayout *unit_layout = new QHBoxLayout;
+	QLabel *unit_label = new QLabel("1 unit =");
+	QComboBox *unitDropBox = new QComboBox();
+	unitDropBox->setEditable(false);
+	unitDropBox->addItem("1 Foot");
+	unitDropBox->addItem("1 Meter");
+	unitDropBox->addItem("1 Inch");
+	QObject::connect(unitDropBox, SIGNAL(activated(int)), 
+					 b, SLOT(setUnits(int)) );
+	unit_layout->addWidget(unit_label);
+	unit_layout->addWidget(unitDropBox);
+	unit_layout->addStretch();
+	sinkOptionsLayout->addLayout(unit_layout);
 	
 	sinkOptionsBox->setLayout(sinkOptionsLayout);
 	
@@ -225,7 +239,7 @@ int main(int argc, char *argv[])
 	outerLayout->addWidget(b);
 	outerLayout->addLayout(sidebarLayout);
 	
-	outerLayout->setStretchFactor(b,3);
+	outerLayout->setStretchFactor(b,4);
 	outerLayout->setStretchFactor(sidebarLayout,1);
 	
 	window->setLayout(outerLayout);

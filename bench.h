@@ -67,6 +67,7 @@ public slots:
 	void setAngle(int);
 	void setPanel(bool);
 	void setPipe(bool);
+	void setUnits(int);
 	
 protected:
     void paintEvent(QPaintEvent *event);
@@ -90,6 +91,7 @@ private:
 	float w_right, w_left, w_top, w_bottom, w_width, w_height;
 	float px_per_unit;
 	float subunits_per_px;
+	double watts_per_unit_2;
 	bool  Receiver_Enabled;
 	double 	RaySpacing;
 	double	Theta; // In degrees

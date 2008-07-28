@@ -27,6 +27,7 @@ Bench::Bench(QWidget *parent)
 	subunits_per_px = (6.0 * SCALER) / 400.0;
 	RaySpacing = .125  * SCALER;
 	Receiver_Enabled = false;
+	watts_per_unit_2  = 92.90304;
 }
 
 void Bench::setTheta(int t) {
@@ -101,6 +102,23 @@ void Bench::setSize(int r) {
 void Bench::setAngle(int a) {
 	sink.setAngle(a);
 	runSimulation();
+}
+void Bench::setUnits(int u) {
+	switch(u) {
+		case 0:
+			watts_per_unit_2 = 92.90304; //ft is default
+			break;
+		case 1:
+			watts_per_unit_2 = 1000.0; //meters
+			break;
+		case 2:
+			watts_per_unit_2 = 0.64516; //meters	
+			break;
+	}
+	if(Receiver_Enabled) {
+		double v = watts_per_unit_2 * ((double) sink.get_hits()) / (1.0 / (RaySpacing/SCALER));
+		emit hitsChanged(((int) (v * 10.0 )) / 10.0);
+	}
 }
 
 void Bench::mousePressEvent(QMouseEvent *event) {
@@ -223,8 +241,10 @@ void Bench::runSimulation() {
 			
 		FinalRays.append(tmp);  // note- every input ray ends up in output array
 	}
-	if(Receiver_Enabled)
-		hitsChanged((int) ( (double) sink.get_hits() / (sink.getSize() * 2.0 / RaySpacing) *100.0 ) / 100.0);
+	if(Receiver_Enabled) {
+		double v = watts_per_unit_2 * ((double) sink.get_hits()) / (1.0 / (RaySpacing/SCALER));
+		emit hitsChanged(((int) (v * 10.0 )) / 10.0);
+	}
 	update(); // schedule a repaint of new rays
 	
 }
