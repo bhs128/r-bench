@@ -53,6 +53,9 @@ public:
 	void setFmax(const double m); // in units
 	double fMin(); // in units
 	double fMax(); // in units
+	void reset_hits();
+	void got_hit();
+	int get_hits();
 	
 private:
 	double func(double x); // in subunits
@@ -61,7 +64,7 @@ private:
 	QPointF reflect_point(QLineF *line, QPointF *point);  //in subunits
 	
 	double x_min, x_max, range, a; // stored in subunits
-	int res;
+	int res, hits;
 	int shape;
 };
 

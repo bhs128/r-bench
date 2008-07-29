@@ -116,8 +116,7 @@ void Bench::setUnits(int u) {
 			break;
 	}
 	if(Receiver_Enabled) {
-		double v = watts_per_unit_2 * ((double) sink.get_hits()) / (1.0 / (RaySpacing/SCALER));
-		emit hitsChanged(((int) (v * 10.0 )) / 10.0);
+		emit hitsChanged( getWatts() );
 	}
 }
 
@@ -167,11 +166,22 @@ void Bench::paintEvent(QPaintEvent *event) {
 }
 
 void Bench::drawRays(QPainter *painter) {
-    QColor niceYellow(255,192,0, 128);
-    QPen thinPen(niceYellow);
-    painter->setPen(thinPen);
+    QColor niceYellow(255,255,0, 128);
+    QPen yellowPen(niceYellow);
+    painter->setPen(yellowPen);
 
+	//painter->drawLines(InitialRays);
+	
+    QColor niceOrange(255,128,0, 128);
+    QPen orangePen(niceOrange);
+    painter->setPen(orangePen);
+	
 	painter->drawLines(FinalRays);
+}
+
+double Bench::getWatts() {
+	double v = watts_per_unit_2 * ((double) sink.get_hits()) / (1.0 / (RaySpacing/SCALER));
+	return ((int) (v * 10.0 )) / 10.0;
 }
 
 void Bench::drawGrid(QPainter *painter) {
@@ -235,6 +245,7 @@ void Bench::setLights() {
 void Bench::runSimulation() {
 	FinalRays.resize(0);  // reset array to null
 	sink.reset_hits();
+	mirror.reset_hits();
 	for(int ridx = 0; ridx < InitialRays.size(); ridx++) {
 		QLineF tmp(InitialRays[ridx]); // copy constructor
 		bounce( &tmp ); 
@@ -242,8 +253,7 @@ void Bench::runSimulation() {
 		FinalRays.append(tmp);  // note- every input ray ends up in output array
 	}
 	if(Receiver_Enabled) {
-		double v = watts_per_unit_2 * ((double) sink.get_hits()) / (1.0 / (RaySpacing/SCALER));
-		emit hitsChanged(((int) (v * 10.0 )) / 10.0);
+		emit hitsChanged( getWatts() );
 	}
 	update(); // schedule a repaint of new rays
 	
@@ -291,7 +301,7 @@ void Bench::bounce(QLineF *a_ray) {
 		temp.setP1(pivot);
 		
 		bounce(&temp);
-
+	
 		FinalRays.append(temp);
 	}
 }

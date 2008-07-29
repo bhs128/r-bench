@@ -68,7 +68,7 @@ public slots:
 	void setPanel(bool);
 	void setPipe(bool);
 	void setUnits(int);
-	
+
 protected:
     void paintEvent(QPaintEvent *event);
     void mousePressEvent(QMouseEvent *event);
@@ -81,6 +81,7 @@ private:
     void drawRays(QPainter *painter);
 	void runSimulation();
 	void calculateWindow();
+	double getWatts();
 	
 	QRect  window;
 	Reflector mirror;

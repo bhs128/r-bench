@@ -95,7 +95,18 @@ double Reflector::fMin() {
 double Reflector::fMax() {
 	return x_max / (double) SCALER;
 }
+void Reflector::reset_hits() {
+	hits = 0;
+}
 
+void Reflector::got_hit() {
+	hits++;
+}
+
+int Reflector::get_hits() {
+	return hits;
+}
+	
 void Reflector::draw(QPainter *painter) {
     QColor darkGrey(196,196,196);
     QPen rPen(darkGrey);
