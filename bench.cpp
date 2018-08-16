@@ -123,7 +123,7 @@ void Bench::setUnits(int u) {
 void Bench::mousePressEvent(QMouseEvent *event) {
 	QPointF pos;
 	
-	pos = event->posF();
+    pos = event->localPos();
 	sink.setCenter(pos.x() * subunits_per_px + w_left, 
 				   (pos.y() * subunits_per_px - w_top) * -1.0);
 	runSimulation();
@@ -174,6 +174,7 @@ void Bench::drawRays(QPainter *painter) {
 	
     QColor niceOrange(255,128,0, 128);
     QPen orangePen(niceOrange);
+    orangePen.setWidthF(6);
     painter->setPen(orangePen);
 	
 	painter->drawLines(FinalRays);
