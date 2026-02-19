@@ -44,13 +44,13 @@ public:
 	Reflector(double A, double minimum, double maximum); // in units
 	
 	void draw(QPainter *painter);
-	QPointF intersection_coord(const QLineF *a_ray); // in subunits
-	bool intersects(const QLineF *a_ray);
-	QLineF reflected_ray(const QLineF *a_ray); // in subunits
+	bool findIntersection(const QLineF *ray, QPointF &hitPoint);
+	QLineF reflected_ray(const QLineF *a_ray, const QPointF &hitPoint); // in subunits
 	void setAlpha(double a);
 	void setShape(const int s);
 	void setFmin(const double m); // in units
 	void setFmax(const double m); // in units
+	void rebuildPolyline();
 	double fMin(); // in units
 	double fMax(); // in units
 	void reset_hits();
@@ -66,6 +66,7 @@ private:
 	double x_min, x_max, range, a; // stored in subunits
 	int res, hits;
 	int shape;
+	QVector<QLineF> segments; // cached polyline of reflector curve
 };
 
 #endif

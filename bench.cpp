@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 Bench::Bench(QWidget *parent) 
 	: QWidget(parent), mirror(0.25, -2.0, 2.0), sink(0.0, 1.0, 0.25) 
 	{
+	setAttribute(Qt::WA_OpaquePaintEvent);
 	w_right = 3.0 * SCALER;
 	w_left = -3.0 * SCALER;
 	subunits_per_px = (6.0 * SCALER) / 400.0;
@@ -267,10 +268,7 @@ void Bench::bounce(QLineF *a_ray) {
 	bool go_reflect = false;
 	bool go_receive = false;
 	
-	if(mirror.intersects(a_ray)) {
-		ri = mirror.intersection_coord(a_ray);
-		go_reflect = true;
-	}
+	go_reflect = mirror.findIntersection(a_ray, ri);
 	if(Receiver_Enabled && sink.intersects(a_ray)) {
 		pi = sink.intersection_coord(a_ray);
 		go_receive = true;
@@ -296,10 +294,9 @@ void Bench::bounce(QLineF *a_ray) {
 	}
 	
 	if(go_reflect) {
-		temp = mirror.reflected_ray(a_ray);
-		pivot = mirror.intersection_coord(a_ray);
-		a_ray->setP2(pivot);
-		temp.setP1(pivot);
+		temp = mirror.reflected_ray(a_ray, ri);
+		a_ray->setP2(ri);
+		temp.setP1(ri);
 		
 		bounce(&temp);
 	
