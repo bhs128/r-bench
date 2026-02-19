@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef REFLECTOR_H
 #define REFLECTOR_H
 
-#include <QtGui>
+#include <QtWidgets>
 #include <QLineF>
 #include <QPointF>
 #include <cmath>

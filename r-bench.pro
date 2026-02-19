@@ -2,7 +2,7 @@
 # You may attempt to use it for building too, by modifying this file here.
 
 #TARGET = r-bench
-QT = widgets uitools
+QT = widgets
 
 HEADERS = \
    $$PWD/bench.h \

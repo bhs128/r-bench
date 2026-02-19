@@ -66,7 +66,7 @@ void Receiver::setAngle(int a) {
 bool Receiver::intersects(const QLineF *a_ray) {
 	if(shape == LINE) {
 		QPointF *answer = new QPointF();
-		if(a_ray->intersect(panel, answer) == QLineF::BoundedIntersection) {
+		if(a_ray->intersects(panel, answer) == QLineF::BoundedIntersection) {
 			return true;
 		} else {
 			return false;
@@ -126,7 +126,7 @@ bool Receiver::intersects(const QLineF *a_ray) {
 QPointF Receiver::intersection_coord(const QLineF *a_ray) {
 	if(shape == LINE) {
 		QPointF *answer = new QPointF();
-		if(a_ray->intersect(panel, answer) == QLineF::BoundedIntersection) {
+		if(a_ray->intersects(panel, answer) == QLineF::BoundedIntersection) {
 			return QPointF(answer->x(), answer->y());
 		} 
 	}

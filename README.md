@@ -18,4 +18,29 @@ In particular this software is designed to analyze the performance of different 
 - recursively bounces light rays until they no longer intersect reflector
 - both circle and line shaped 'light sinks'
 
-Current version is programmed using Qt4.
+## Building
+
+### Prerequisites (Debian/Ubuntu)
+
+```bash
+sudo apt install qt6-base-dev qmake6 libgl-dev g++ make
+```
+
+### Build
+
+```bash
+qmake6 r-bench.pro
+make
+```
+
+### Run
+
+```bash
+./r-bench
+```
+
+**WSL2 note:** GUI works out of the box on WSL2 with WSLg (Windows 10 build 19044+ / Windows 11).
+
+## Technology
+
+Built with Qt6 (originally Qt4, ported 2026).

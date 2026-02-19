@@ -123,7 +123,7 @@ void Bench::setUnits(int u) {
 void Bench::mousePressEvent(QMouseEvent *event) {
 	QPointF pos;
 	
-    pos = event->localPos();
+    pos = event->position();
 	sink.setCenter(pos.x() * subunits_per_px + w_left, 
 				   (pos.y() * subunits_per_px - w_top) * -1.0);
 	runSimulation();
@@ -152,9 +152,9 @@ void Bench::calculateWindow() {
 }
 
 void Bench::paintEvent(QPaintEvent *event) {
-	QMatrix reflectionMatrix(1, 0, 0, -1, 0.0, 0.0); // Defines a reflection over the x-axis
+	QTransform reflectionMatrix(1, 0, 0, -1, 0.0, 0.0); // Defines a reflection over the x-axis
     QPainter painter(this);
-	painter.setMatrix(reflectionMatrix);
+	painter.setTransform(reflectionMatrix);
     painter.setRenderHint(QPainter::Antialiasing, true);
     painter.setWindow(window); // in case a resizeEvent updated it 
 	

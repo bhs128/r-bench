@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef BENCH_H
 #define BENCH_H
 
-#include <QtGui>
+#include <QtWidgets>
 #include <QWidget>
 #include <QLineF>
 #include <QVector>
