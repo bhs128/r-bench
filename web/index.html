@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R-Bench</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: #1e1e1e; color: #d4d4d4; font-family: system-ui, -apple-system, sans-serif; font-size: 13px; }
+
+#app {
+  display: flex; height: 100vh; overflow: hidden;
+}
+#canvas-wrap {
+  flex: 4; position: relative; min-width: 0;
+}
+canvas {
+  display: block; width: 100%; height: 100%; background: #000; cursor: crosshair;
+}
+#fps {
+  position: absolute; top: 6px; left: 8px;
+  color: #0f0; font: 12px monospace; pointer-events: none; user-select: none;
+}
+#sidebar {
+  flex: 0 0 280px; padding: 10px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 8px;
+  border-left: 1px solid #333;
+}
+fieldset {
+  border: 1px solid #555; border-radius: 4px; padding: 8px 10px;
+}
+legend { padding: 0 4px; font-weight: 600; font-size: 12px; color: #aaa; }
+.row {
+  display: flex; align-items: center; gap: 6px; margin: 4px 0;
+}
+.row label { flex: 0 0 55px; text-align: right; font-size: 12px; }
+.row input[type=range] { flex: 1; min-width: 0; }
+.row .val { flex: 0 0 36px; text-align: left; font-size: 12px; font-variant-numeric: tabular-nums; }
+.row input[type=number] { width: 64px; background: #2d2d2d; color: #d4d4d4; border: 1px solid #555; border-radius: 3px; padding: 2px 4px; font-size: 12px; }
+.radio-group { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 4px 10px; }
+.radio-group label { font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.check-row { margin: 4px 0 4px 4px; }
+.check-row label { font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+select { background: #2d2d2d; color: #d4d4d4; border: 1px solid #555; border-radius: 3px; padding: 2px; font-size: 12px; }
+.info-row { display: flex; align-items: center; gap: 4px; margin: 4px 0; font-size: 12px; }
+#power-val { font-weight: 600; min-width: 40px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="canvas-wrap">
+    <canvas id="c"></canvas>
+    <div id="fps"></div>
+  </div>
+  <div id="sidebar">
+    <fieldset>
+      <legend>Incoming Rays</legend>
+      <div class="row">
+        <label for="theta">Theta:</label>
+        <input type="range" id="theta" min="5" max="175" value="90">
+        <span class="val" id="theta-val">90</span>
+      </div>
+      <div class="row">
+        <label for="spacing">Spacing:</label>
+        <input type="range" id="spacing" min="1" max="20" value="5">
+        <span class="val" id="spacing-val">5</span>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Reflector</legend>
+      <div class="row">
+        <label for="alpha">Alpha:</label>
+        <input type="range" id="alpha" min="1" max="100" value="50">
+        <span class="val" id="alpha-val">0.50</span>
+      </div>
+      <div class="radio-group">
+        <label><input type="radio" name="ref-shape" value="cat" checked> Catenary</label>
+        <label><input type="radio" name="ref-shape" value="para"> Parabola</label>
+        <label><input type="radio" name="ref-shape" value="semi"> Semicircle</label>
+      </div>
+      <div class="row">
+        <label>Range:</label>
+        <input type="number" id="ref-min" value="-2.50" min="-8" max="-0.05" step="0.05">
+        <input type="number" id="ref-max" value="2.50" min="0.05" max="8" step="0.05">
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Receiver</legend>
+      <div class="check-row">
+        <label><input type="checkbox" id="rec-enable" checked> Enable</label>
+      </div>
+      <div class="row">
+        <label for="rec-size">Size:</label>
+        <input type="range" id="rec-size" min="4" max="200" value="25">
+        <span class="val" id="rec-size-val">0.25</span>
+      </div>
+      <div class="row">
+        <label for="rec-angle">Angle:</label>
+        <input type="range" id="rec-angle" min="0" max="360" value="180">
+        <span class="val" id="rec-angle-val">180</span>
+      </div>
+      <div class="radio-group">
+        <label><input type="radio" name="rec-shape" value="line"> Line</label>
+        <label><input type="radio" name="rec-shape" value="circle" checked> Circle</label>
+      </div>
+      <div class="info-row">
+        <span>Power:</span>
+        <span id="power-val">0</span>
+        <span>watts/unit</span>
+      </div>
+      <div class="info-row">
+        <span>1 unit =</span>
+        <select id="units">
+          <option value="ft" selected>1 Foot</option>
+          <option value="m">1 Meter</option>
+          <option value="in">1 Inch</option>
+        </select>
+      </div>
+    </fieldset>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ===== Constants =====
+const SCALER = 1024;
+const RAY_WIDTH = 6.0;
+const DEG2RAD = Math.PI / 180;
+
+// ===== Reflector math =====
+const REF_PARA = 1, REF_CAT = 2, REF_SEMI = 3;
+const REC_CIRCLE = 1, REC_LINE = 2;
+
+function refFunc(x, a, shape, xMin, xMax) {
+  const xu = x / SCALER;
+  const maxR = Math.max(Math.abs(xMin), xMax) / SCALER;
+  let ans;
+  switch (shape) {
+    case REF_PARA: ans = a * xu * xu; break;
+    case REF_SEMI: {
+      const r = a * (-4 * maxR) + maxR * 5.01;
+      ans = -Math.sqrt(r * r - xu * xu) + r;
+      break;
+    }
+    default: ans = a * Math.cosh(xu) - a;
+  }
+  return ans * SCALER;
+}
+
+function refDFunc(x, a, shape, xMin, xMax) {
+  const xu = x / SCALER;
+  const maxR = Math.max(Math.abs(xMin), xMax) / SCALER;
+  switch (shape) {
+    case REF_PARA: return a * 2 * xu;
+    case REF_SEMI: {
+      const r = a * (-4 * maxR) + maxR * 5.01;
+      return xu / Math.sqrt(r * r - xu * xu);
+    }
+    default: return a * Math.sinh(xu);
+  }
+}
+
+function buildPolyline(a, shape, xMin, xMax, res) {
+  const segs = [];
+  const step = (xMax - xMin) / res;
+  let px = xMin, py = refFunc(xMin, a, shape, xMin, xMax);
+  for (let i = 1; i <= res; i++) {
+    const x = xMin + i * step;
+    const y = refFunc(x, a, shape, xMin, xMax);
+    segs.push(px, py, x, y);
+    px = x; py = y;
+  }
+  return new Float64Array(segs);
+}
+
+// ===== Line intersection =====
+function lineIntersect(ax1, ay1, ax2, ay2, bx1, by1, bx2, by2) {
+  // Returns [t, u] parameters or null
+  const dx1 = ax2 - ax1, dy1 = ay2 - ay1;
+  const dx2 = bx2 - bx1, dy2 = by2 - by1;
+  const denom = dx1 * dy2 - dy1 * dx2;
+  if (Math.abs(denom) < 1e-12) return null;
+  const t = ((bx1 - ax1) * dy2 - (by1 - ay1) * dx2) / denom;
+  const u = ((bx1 - ax1) * dy1 - (by1 - ay1) * dx1) / denom;
+  if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
+    return [ax1 + t * dx1, ay1 + t * dy1, t];
+  }
+  return null;
+}
+
+function findReflectorIntersection(ray, segs) {
+  // ray: [x1,y1,x2,y2], segs: Float64Array of [x1,y1,x2,y2, ...]
+  let best = null, bestDist = Infinity;
+  const ox = ray[0], oy = ray[1];
+  for (let i = 0; i < segs.length; i += 4) {
+    const hit = lineIntersect(ray[0], ray[1], ray[2], ray[3], segs[i], segs[i+1], segs[i+2], segs[i+3]);
+    if (hit) {
+      const dx = hit[0] - ox, dy = hit[1] - oy;
+      const d = dx * dx + dy * dy;
+      if (d < 1.0) continue;
+      if (d < bestDist) { bestDist = d; best = hit; }
+    }
+  }
+  return best;
+}
+
+function reflectPoint(lx1, ly1, lx2, ly2, px, py) {
+  const ml = (ly2 - ly1) / (lx2 - lx1);
+  const mr = -1.0 / ml;
+  const xi = (mr * px - py - ml * lx1 + ly1) / (mr - ml);
+  const yi = ml * (xi - lx1) + ly1;
+  return [px + 2 * (xi - px), py + 2 * (yi - py)];
+}
+
+function computeReflectedRay(ray, hitX, hitY, a, shape, xMin, xMax) {
+  const ax1 = ray[0], ay1 = ray[1], ax2 = ray[2], ay2 = ray[3];
+
+  if (Math.abs(ax1 - ax2) < 0.001) {
+    // Vertical ray
+    const shift = ax1 > 0 ? Math.PI / 2 : -Math.PI / 2;
+    const theta = Math.atan(refDFunc(ax1, a, shape, xMin, xMax)) * 2 - shift;
+    const dcos = SCALER * 50 * Math.cos(theta);
+    const dsin = SCALER * 50 * Math.sin(theta);
+    if (ax1 <= 0) return [ax1, hitY, ax1 + dcos, hitY + dsin];
+    else return [ax1, hitY, ax1 - dcos, hitY - dsin];
+  }
+
+  const fm = refDFunc(hitX, a, shape, xMin, xMax);
+  const tx1 = hitX - 1, ty1 = fm * (-1) + hitY;
+  const tx2 = hitX + 1, ty2 = fm * (1) + hitY;
+  const rs = reflectPoint(tx1, ty1, tx2, ty2, ax1, ay1);
+  const re = reflectPoint(tx1, ty1, tx2, ty2, ax2, ay2);
+  return [rs[0], rs[1], re[0], re[1]];
+}
+
+// ===== Receiver intersection =====
+function recLineIntersects(ray, panel) {
+  return lineIntersect(ray[0], ray[1], ray[2], ray[3], panel[0], panel[1], panel[2], panel[3]);
+}
+
+function recCircleIntersects(ray, cx, cy, size) {
+  let x1 = ray[0], y1 = ray[1], x2 = ray[2], y2 = ray[3];
+  if (Math.abs(x1 - x2) < 0.001) {
+    if (x1 < cx - size || x1 > cx + size) return false;
+    return (y1 > cy + size && y2 < cy - size) || (y2 > cy + size && y1 < cy - size);
+  }
+  // Translate
+  const lx1 = x1 - cx, lx2 = x2 - cx, ly1 = y1 - cy, ly2 = y2 - cy;
+  const slope = (ray[3] - ray[1]) / (ray[2] - ray[0]);
+  const b = -slope * lx1 + ly1;
+  const disc = size * size - b * b + slope * slope * size * size;
+  return disc > 0;
+}
+
+function recCircleCoord(ray, cx, cy, size) {
+  let x1 = ray[0], y1 = ray[1];
+  if (Math.abs(ray[0] - ray[2]) < 0.001) return [ray[0], cy];
+  const lx1 = x1 - cx, ly1 = y1 - cy;
+  const m = (ray[3] - ray[1]) / (ray[2] - ray[0]);
+  const b = -m * lx1 + ly1;
+  const disc = size * size - b * b + m * m * size * size;
+  const ix = (-m * b + Math.sqrt(disc)) / (1 + m * m);
+  return [ix + cx, m * ix + b + cy];
+}
+
+// ===== Bounce =====
+function bounce(ray, segs, a, shape, xMin, xMax, recEnabled, recShape, cx, cy, recSize, panel, output) {
+  let hits = 0;
+  let goReflect = false, goReceive = false;
+  let ri = null, pi = null;
+
+  const refHit = findReflectorIntersection(ray, segs);
+  if (refHit) { goReflect = true; ri = refHit; }
+
+  if (recEnabled) {
+    if (recShape === REC_LINE) {
+      const lh = recLineIntersects(ray, panel);
+      if (lh) { goReceive = true; pi = lh; }
+    } else {
+      if (recCircleIntersects(ray, cx, cy, recSize)) {
+        const cc = recCircleCoord(ray, cx, cy, recSize);
+        goReceive = true;
+        pi = cc;
+      }
+    }
+  }
+
+  if (goReceive && goReflect) {
+    const pd = (ray[0] - pi[0]) ** 2 + (ray[1] - pi[1]) ** 2;
+    const rd = (ray[0] - ri[0]) ** 2 + (ray[1] - ri[1]) ** 2;
+    if (pd < rd) goReflect = false;
+    else goReceive = false;
+  }
+
+  if (goReceive) { ray[2] = pi[0]; ray[3] = pi[1]; hits++; }
+
+  if (goReflect) {
+    const reflected = computeReflectedRay(ray, ri[0], ri[1], a, shape, xMin, xMax);
+    ray[2] = ri[0]; ray[3] = ri[1];
+    reflected[0] = ri[0]; reflected[1] = ri[1];
+    const sub = bounce(reflected, segs, a, shape, xMin, xMax, recEnabled, recShape, cx, cy, recSize, panel, output);
+    hits += sub;
+    output.push(reflected[0], reflected[1], reflected[2], reflected[3]);
+  }
+  return hits;
+}
+
+// ===== Simulation state =====
+let state = {
+  theta: 90, spacing: 5, alpha: 0.25, refShape: REF_CAT,
+  refMin: -2.5, refMax: 2.5,
+  recEnabled: true, recShape: REC_CIRCLE, recSize: 0.25, recAngle: 180,
+  recCX: 0, recCY: 1.0,
+  wattsPerUnit2: 92.90304,
+};
+
+// Viewport (calculated)
+let vp = { left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0, spuPx: 0 };
+
+function calcViewport(canvasW, canvasH) {
+  const refWidth = state.refMax - state.refMin;
+  const spuPx = ((100 * refWidth / 70) * SCALER) / canvasW;
+  const wWidth = spuPx * canvasW;
+  const wRight = wWidth * 0.15 + state.refMax * SCALER;
+  const wLeft = state.refMin * SCALER - wWidth * 0.15;
+  const wBottom = -0.10 * spuPx * canvasH;
+  const wTop = spuPx * canvasH + wBottom;
+  vp = { left: wLeft, right: wRight, top: wTop, bottom: wBottom, width: wWidth, height: wTop - wBottom, spuPx: spuPx };
+}
+
+// ===== Generate initial rays =====
+function generateRays() {
+  const rays = [];
+  const raySpacing = state.spacing * RAY_WIDTH;
+  const theta = state.theta;
+
+  if (theta === 90) {
+    for (let x = vp.left; x < vp.right; x += raySpacing) {
+      rays.push(x, vp.top, x, vp.bottom);
+    }
+  } else {
+    const t = (theta < 90 ? theta : 180 - theta) * DEG2RAD;
+    const xInc = raySpacing / Math.sin(t);
+    const yInc = raySpacing / Math.cos(t);
+    const cx1 = theta < 90 ? vp.right : vp.left;
+    const cy1 = vp.top;
+    const cx2 = cx1 + (theta < 90 ? -50 : 50) * SCALER * Math.cos(t);
+    const cy2 = cy1 - SCALER * 50 * Math.sin(t);
+
+    rays.push(cx1, cy1, cx2, cy2);
+    const raysAcross = Math.floor(vp.width / xInc);
+    const raysDown = Math.floor(vp.height / yInc);
+
+    for (let i = 1; i <= raysAcross; i++) {
+      const shift = theta < 90 ? -i * xInc : i * xInc;
+      rays.push(cx1 + shift, cy1, cx2 + shift, cy2);
+    }
+    for (let i = 1; i <= raysDown; i++) {
+      rays.push(cx1, cy1 - i * yInc, cx2, cy2 - i * yInc);
+    }
+  }
+  return rays;
+}
+
+// ===== Run simulation =====
+function runSimulation() {
+  const t0 = performance.now();
+  const segs = buildPolyline(state.alpha, state.refShape, state.refMin * SCALER, state.refMax * SCALER, 200);
+  const initialRays = generateRays();
+
+  // Receiver panel line
+  const recSizeS = state.recSize * SCALER;
+  const cxS = state.recCX * SCALER;
+  const cyS = state.recCY * SCALER;
+  const angRad = state.recAngle * DEG2RAD;
+  const panel = [
+    cxS + recSizeS * Math.cos(angRad), cyS + recSizeS * Math.sin(angRad),
+    cxS - recSizeS * Math.cos(angRad), cyS - recSizeS * Math.sin(angRad)
+  ];
+
+  const finalRays = [];
+  let totalHits = 0;
+
+  for (let i = 0; i < initialRays.length; i += 4) {
+    const ray = [initialRays[i], initialRays[i+1], initialRays[i+2], initialRays[i+3]];
+    const bounced = [];
+    totalHits += bounce(ray, segs, state.alpha, state.refShape, state.refMin * SCALER, state.refMax * SCALER,
+                        state.recEnabled, state.recShape, cxS, cyS, recSizeS, panel, bounced);
+    finalRays.push(ray[0], ray[1], ray[2], ray[3]);
+    for (let j = 0; j < bounced.length; j++) finalRays.push(bounced[j]);
+  }
+
+  const simMs = performance.now() - t0;
+  return { finalRays, segs, totalHits, simMs, panel, cxS, cyS, recSizeS };
+}
+
+// ===== Canvas rendering =====
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+const fpsEl = document.getElementById("fps");
+
+let frameCount = 0, lastFpsTime = performance.now(), currentFps = 0;
+let lastSimMs = 0, lastPaintMs = 0;
+let lastSimResult = null;
+let dirty = true;
+
+function render() {
+  // Resize canvas backing store to match display
+  const dpr = window.devicePixelRatio || 1;
+  const cw = canvas.clientWidth, ch = canvas.clientHeight;
+  const bw = Math.round(cw * dpr), bh = Math.round(ch * dpr);
+  if (canvas.width !== bw || canvas.height !== bh) {
+    canvas.width = bw;
+    canvas.height = bh;
+    dirty = true;
+  }
+
+  if (dirty) {
+    dirty = false;
+    calcViewport(bw, bh);
+
+    const sim = runSimulation();
+    lastSimResult = sim;
+    lastSimMs = sim.simMs;
+
+    const t0 = performance.now();
+    drawFrame(sim, bw, bh);
+    lastPaintMs = performance.now() - t0;
+  }
+
+  // FPS counter
+  frameCount++;
+  const now = performance.now();
+  if (now - lastFpsTime >= 500) {
+    currentFps = frameCount * 1000 / (now - lastFpsTime);
+    frameCount = 0;
+    lastFpsTime = now;
+    const nRays = lastSimResult ? lastSimResult.finalRays.length / 4 : 0;
+    fpsEl.textContent = `${currentFps.toFixed(1)} fps | ${nRays} rays | sim ${lastSimMs.toFixed(1)}ms | paint ${lastPaintMs.toFixed(1)}ms`;
+  }
+
+  requestAnimationFrame(render);
+}
+
+function worldToCanvas(wx, wy, bw, bh) {
+  return [(wx - vp.left) / vp.width * bw, (vp.top - wy) / vp.height * bh];
+}
+
+function drawFrame(sim, bw, bh) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, bw, bh);
+
+  // Grid
+  ctx.strokeStyle = "#404040";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let y = 0; y < vp.top; y += SCALER) {
+    let [px0, py0] = worldToCanvas(vp.left, y, bw, bh);
+    let [px1, py1] = worldToCanvas(vp.right, y, bw, bh);
+    ctx.moveTo(px0, py0); ctx.lineTo(px1, py1);
+    [px0, py0] = worldToCanvas(vp.left, -y, bw, bh);
+    [px1, py1] = worldToCanvas(vp.right, -y, bw, bh);
+    ctx.moveTo(px0, py0); ctx.lineTo(px1, py1);
+  }
+  for (let x = 0; x < vp.right; x += SCALER) {
+    const [px0, py0] = worldToCanvas(x, vp.top, bw, bh);
+    const [px1, py1] = worldToCanvas(x, vp.bottom, bw, bh);
+    ctx.moveTo(px0, py0); ctx.lineTo(px1, py1);
+  }
+  for (let x = 0; x > vp.left; x -= SCALER) {
+    const [px0, py0] = worldToCanvas(x, vp.top, bw, bh);
+    const [px1, py1] = worldToCanvas(x, vp.bottom, bw, bh);
+    ctx.moveTo(px0, py0); ctx.lineTo(px1, py1);
+  }
+  ctx.stroke();
+
+  // Rays
+  ctx.strokeStyle = "#ff8000";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  const fr = sim.finalRays;
+  for (let i = 0; i < fr.length; i += 4) {
+    const [px0, py0] = worldToCanvas(fr[i], fr[i+1], bw, bh);
+    const [px1, py1] = worldToCanvas(fr[i+2], fr[i+3], bw, bh);
+    ctx.moveTo(px0, py0);
+    ctx.lineTo(px1, py1);
+  }
+  ctx.stroke();
+
+  // Reflector
+  ctx.strokeStyle = "#c4c4c4";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  const segs = sim.segs;
+  for (let i = 0; i < segs.length; i += 4) {
+    const [px0, py0] = worldToCanvas(segs[i], segs[i+1], bw, bh);
+    const [px1, py1] = worldToCanvas(segs[i+2], segs[i+3], bw, bh);
+    ctx.moveTo(px0, py0);
+    ctx.lineTo(px1, py1);
+  }
+  ctx.stroke();
+
+  // Receiver
+  if (state.recEnabled) {
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1.5;
+    if (state.recShape === REC_CIRCLE) {
+      const [cx, cy] = worldToCanvas(sim.cxS, sim.cyS, bw, bh);
+      const [rx] = worldToCanvas(sim.cxS + sim.recSizeS, sim.cyS, bw, bh);
+      const r = Math.abs(rx - cx);
+      ctx.fillStyle = "#333366";
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      const [px0, py0] = worldToCanvas(sim.panel[0], sim.panel[1], bw, bh);
+      const [px1, py1] = worldToCanvas(sim.panel[2], sim.panel[3], bw, bh);
+      ctx.beginPath();
+      ctx.moveTo(px0, py0); ctx.lineTo(px1, py1);
+      ctx.stroke();
+    }
+  }
+
+  // Power readout
+  if (state.recEnabled) {
+    const watts = state.wattsPerUnit2 * sim.totalHits * (state.spacing * RAY_WIDTH) / SCALER;
+    document.getElementById("power-val").textContent = (Math.floor(watts * 10) / 10).toFixed(1);
+  }
+}
+
+// ===== UI wiring =====
+function markDirty() { dirty = true; }
+
+function bindSlider(id, valId, onChange, format) {
+  const el = document.getElementById(id);
+  const valEl = document.getElementById(valId);
+  el.addEventListener("input", () => {
+    const v = Number(el.value);
+    valEl.textContent = format ? format(v) : v;
+    onChange(v);
+    markDirty();
+  });
+}
+
+bindSlider("theta", "theta-val", v => state.theta = v);
+bindSlider("spacing", "spacing-val", v => state.spacing = v);
+bindSlider("alpha", "alpha-val", v => state.alpha = v / 100, v => (v / 100).toFixed(2));
+bindSlider("rec-size", "rec-size-val", v => state.recSize = v / 100, v => (v / 100).toFixed(2));
+bindSlider("rec-angle", "rec-angle-val", v => state.recAngle = v);
+
+document.querySelectorAll('input[name="ref-shape"]').forEach(el => {
+  el.addEventListener("change", () => {
+    state.refShape = { para: REF_PARA, cat: REF_CAT, semi: REF_SEMI }[el.value];
+    markDirty();
+  });
+});
+
+document.querySelectorAll('input[name="rec-shape"]').forEach(el => {
+  el.addEventListener("change", () => {
+    state.recShape = el.value === "circle" ? REC_CIRCLE : REC_LINE;
+    markDirty();
+  });
+});
+
+document.getElementById("ref-min").addEventListener("change", e => { state.refMin = Number(e.target.value); markDirty(); });
+document.getElementById("ref-max").addEventListener("change", e => { state.refMax = Number(e.target.value); markDirty(); });
+
+document.getElementById("rec-enable").addEventListener("change", e => {
+  state.recEnabled = e.target.checked;
+  if (!state.recEnabled) document.getElementById("power-val").textContent = "0";
+  markDirty();
+});
+
+document.getElementById("units").addEventListener("change", e => {
+  state.wattsPerUnit2 = { ft: 92.90304, m: 1000.0, "in": 0.64516 }[e.target.value];
+  markDirty();
+});
+
+// Mouse interaction — click/drag to move receiver
+canvas.addEventListener("mousedown", e => {
+  if (e.button !== 0) return;
+  moveReceiver(e);
+  const onMove = ev => moveReceiver(ev);
+  const onUp = () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+});
+
+function moveReceiver(e) {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const px = (e.clientX - rect.left) * dpr;
+  const py = (e.clientY - rect.top) * dpr;
+  const bw = canvas.width, bh = canvas.height;
+  // Pixel to world
+  const wx = px / bw * vp.width + vp.left;
+  const wy = vp.top - py / bh * vp.height;
+  state.recCX = wx / SCALER;
+  state.recCY = wy / SCALER;
+  markDirty();
+}
+
+// Handle window resize
+window.addEventListener("resize", markDirty);
+
+// Start
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

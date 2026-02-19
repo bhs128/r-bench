@@ -4,6 +4,8 @@ R-Bench models how well various shapes of reflectors concentrate light from diff
 
 In particular this software is designed to analyze the performance of different solar trough designs for use in renewable energy production.
 
+**[Try it in your browser](https://bhs128.github.io/r-bench/)** — no install required.
+
 ## Intended scope:
 
 - Single reflector
@@ -41,9 +43,22 @@ make
 
 **WSL2 note:** GUI works out of the box on WSL2 with WSLg (Windows 10 build 19044+ / Windows 11).
 
+## Web Version
+
+A standalone single-page web app is available in the `web/` directory — one HTML file, zero dependencies.
+It uses Canvas 2D for GPU-accelerated rendering and runs entirely in the browser.
+
+Hosted at **https://bhs128.github.io/r-bench/**
+
+To run locally:
+```bash
+cd web && python3 -m http.server 8000
+```
+
 ## Technology
 
-Built with Qt6 (originally Qt4, ported 2026).
+Desktop: Qt6 C++ (originally Qt4, ported 2026).  
+Web: Vanilla JavaScript + Canvas 2D.
 
 ## Downloads
 
