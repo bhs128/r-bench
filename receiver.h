@@ -50,6 +50,11 @@ public:
 	bool intersects(const QLineF *a_ray);
 	QPointF intersection_coord(const QLineF *a_ray);
 	void draw(QPainter *painter);
+	int getShape() const { return shape; }
+	double getCenterXRaw() const { return center_x; }
+	double getCenterYRaw() const { return center_y; }
+	double getSizeRaw() const { return size; }
+	const QLineF& getPanel() const { return panel; }
 	
 private:
 	void calculateLine();

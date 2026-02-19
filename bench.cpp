@@ -18,6 +18,18 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ******************************************************************************/
 #include "bench.h"
+#include <algorithm>
+#include <cstdint>
+
+// Cohen-Sutherland region outcodes
+static inline int csOutcode(int x, int y, int w, int h) {
+    int code = 0;
+    if (x < 0) code |= 1;        // left
+    else if (x >= w) code |= 2;   // right
+    if (y < 0) code |= 4;        // above
+    else if (y >= h) code |= 8;   // below
+    return code;
+}
 
 Bench::Bench(QWidget *parent) 
 	: QWidget(parent), mirror(0.25, -2.0, 2.0), sink(0.0, 1.0, 0.25) 
@@ -199,7 +211,6 @@ void Bench::scheduleUpdate() {
 }
 
 void Bench::paintEvent(QPaintEvent *) {
-	perfTimer.start();
 	// FPS tracking
 	frameCount++;
 	qint64 elapsed = fpsTimer.elapsed();
@@ -209,18 +220,12 @@ void Bench::paintEvent(QPaintEvent *) {
 		fpsTimer.restart();
 	}
 
-	QTransform reflectionMatrix(1, 0, 0, -1, 0.0, 0.0); // Defines a reflection over the x-axis
-    QPainter painter(this);
-	painter.setTransform(reflectionMatrix);
-    painter.setWindow(window);
-	
-	drawGrid(&painter);	
-    drawRays(&painter);
-	mirror.draw(&painter);
-	if(Receiver_Enabled) 
-		sink.draw(&painter);
-	
-	paintMs = perfTimer.nsecsElapsed() / 1e6;
+	QPainter painter(this);
+	if (!frameBuffer.isNull()) {
+		painter.drawImage(0, 0, frameBuffer);
+	} else {
+		painter.fillRect(rect(), Qt::black);
+	}
 	drawFps(&painter);
 }
 
@@ -239,12 +244,9 @@ void Bench::drawFps(QPainter *painter) {
 	painter->drawText(6, 16, fpsText);
 }
 
-void Bench::drawRays(QPainter *painter) {
-    QPen rayPen(QColor(255, 128, 0));
-    rayPen.setCosmetic(true);
-    rayPen.setWidth(1);
-    painter->setPen(rayPen);
-	painter->drawLines(FinalRays);
+void Bench::worldToPixel(double wx, double wy, int &px, int &py) const {
+	px = (int)((wx - w_left) / w_width * frameBuffer.width());
+	py = (int)((w_top - wy) / w_height * frameBuffer.height());
 }
 
 double Bench::getWatts() {
@@ -252,25 +254,168 @@ double Bench::getWatts() {
 	return ((int) (v * 10.0 )) / 10.0;
 }
 
-void Bench::drawGrid(QPainter *painter) {
-    QPen gridPen(QColor(64,64,64));
-    gridPen.setCosmetic(true);
-    gridPen.setWidth(1);
-	
-	painter->fillRect( (int) w_left, (int) w_bottom, (int) w_width, (int) w_height, QColor(0,0,0)); 
-	painter->setPen(gridPen);
+void Bench::rasterLine(uint32_t *bits, int stride, int imgW, int imgH,
+                        int x0, int y0, int x1, int y1, uint32_t color) {
+	// Cohen-Sutherland line clipping
+	int code0 = csOutcode(x0, y0, imgW, imgH);
+	int code1 = csOutcode(x1, y1, imgW, imgH);
 
-	// Batch grid lines
-	QVector<QLineF> gridLines;
-	for(int y=0; y<w_top; y+=SCALER) {
-		gridLines.append(QLineF(w_left, (float) y, w_right, (float) y));
-		gridLines.append(QLineF(w_left, (float) y * -1.0, w_right, (float) y * -1.0));
+	for (;;) {
+		if (!(code0 | code1)) break;   // both inside
+		if (code0 & code1) return;     // trivial reject
+
+		int code = code0 ? code0 : code1;
+		int x, y;
+
+		if (code & 8) {        // below
+			x = x0 + (int)((long long)(x1 - x0) * (imgH - 1 - y0) / (y1 - y0));
+			y = imgH - 1;
+		} else if (code & 4) { // above
+			x = x0 + (int)((long long)(x1 - x0) * (0 - y0) / (y1 - y0));
+			y = 0;
+		} else if (code & 2) { // right
+			y = y0 + (int)((long long)(y1 - y0) * (imgW - 1 - x0) / (x1 - x0));
+			x = imgW - 1;
+		} else {               // left
+			y = y0 + (int)((long long)(y1 - y0) * (0 - x0) / (x1 - x0));
+			x = 0;
+		}
+
+		if (code == code0) {
+			x0 = x; y0 = y;
+			code0 = csOutcode(x0, y0, imgW, imgH);
+		} else {
+			x1 = x; y1 = y;
+			code1 = csOutcode(x1, y1, imgW, imgH);
+		}
 	}
-	for(int x=0; x<w_right; x+=SCALER)
-		gridLines.append(QLineF((float) x, w_top, (float) x, w_bottom));
-	for(int x=0; x>w_left; x-=SCALER)
-		gridLines.append(QLineF((float) x, w_top, (float) x, w_bottom));
-	painter->drawLines(gridLines);
+
+	// Bresenham's line algorithm
+	int dx = std::abs(x1 - x0);
+	int dy = -std::abs(y1 - y0);
+	int sx = x0 < x1 ? 1 : -1;
+	int sy = y0 < y1 ? 1 : -1;
+	int err = dx + dy;
+
+	for (;;) {
+		bits[y0 * stride + x0] = color;
+		if (x0 == x1 && y0 == y1) break;
+		int e2 = 2 * err;
+		if (e2 >= dy) { err += dy; x0 += sx; }
+		if (e2 <= dx) { err += dx; y0 += sy; }
+	}
+}
+
+void Bench::rasterFilledCircle(uint32_t *bits, int stride, int imgW, int imgH,
+                                int cx, int cy, int r, uint32_t fill, uint32_t stroke) {
+	int r2 = r * r;
+	for (int dy = -r; dy <= r; dy++) {
+		int y = cy + dy;
+		if (y < 0 || y >= imgH) continue;
+		int dx = (int)std::sqrt((double)(r2 - dy * dy));
+		int xLeft = cx - dx;
+		int xRight = cx + dx;
+		int xStart = std::max(0, xLeft);
+		int xEnd = std::min(imgW - 1, xRight);
+		uint32_t *row = bits + y * stride;
+		for (int x = xStart; x <= xEnd; x++) {
+			row[x] = fill;
+		}
+		// Stroke boundary pixels
+		if (xLeft >= 0 && xLeft < imgW) row[xLeft] = stroke;
+		if (xRight >= 0 && xRight < imgW) row[xRight] = stroke;
+	}
+}
+
+void Bench::renderFrame() {
+	int imgW = width();
+	int imgH = height();
+	if (imgW <= 0 || imgH <= 0) return;
+
+	if (frameBuffer.width() != imgW || frameBuffer.height() != imgH) {
+		frameBuffer = QImage(imgW, imgH, QImage::Format_RGB32);
+	}
+
+	frameBuffer.fill(0xFF000000);
+
+	uint32_t *bits = reinterpret_cast<uint32_t *>(frameBuffer.bits());
+	int stride = frameBuffer.bytesPerLine() / 4;
+
+	// ---- Grid ----
+	uint32_t gridColor = 0xFF404040;
+	for (int y = 0; y < (int)w_top; y += SCALER) {
+		int px0, py0, px1, py1;
+		worldToPixel(w_left, (double)y, px0, py0);
+		worldToPixel(w_right, (double)y, px1, py1);
+		rasterLine(bits, stride, imgW, imgH, px0, py0, px1, py1, gridColor);
+		worldToPixel(w_left, (double)(-y), px0, py0);
+		worldToPixel(w_right, (double)(-y), px1, py1);
+		rasterLine(bits, stride, imgW, imgH, px0, py0, px1, py1, gridColor);
+	}
+	for (int x = 0; x < (int)w_right; x += SCALER) {
+		int px0, py0, px1, py1;
+		worldToPixel((double)x, w_top, px0, py0);
+		worldToPixel((double)x, w_bottom, px1, py1);
+		rasterLine(bits, stride, imgW, imgH, px0, py0, px1, py1, gridColor);
+	}
+	for (int x = 0; x > (int)w_left; x -= SCALER) {
+		int px0, py0, px1, py1;
+		worldToPixel((double)x, w_top, px0, py0);
+		worldToPixel((double)x, w_bottom, px1, py1);
+		rasterLine(bits, stride, imgW, imgH, px0, py0, px1, py1, gridColor);
+	}
+
+	// ---- Rays (multi-threaded) ----
+	uint32_t rayColor = 0xFFFF8000;
+	const int numRays = FinalRays.size();
+	if (numRays > 0) {
+		const int chunkSize = (numRays + numThreads - 1) / numThreads;
+		std::vector<std::thread> threads;
+		for (int t = 0; t < numThreads; ++t) {
+			int start = t * chunkSize;
+			int end = std::min(start + chunkSize, numRays);
+			if (start >= end) break;
+			threads.emplace_back([this, bits, stride, imgW, imgH, rayColor, start, end]() {
+				for (int i = start; i < end; ++i) {
+					const QLineF &ray = FinalRays[i];
+					int px0, py0, px1, py1;
+					worldToPixel(ray.x1(), ray.y1(), px0, py0);
+					worldToPixel(ray.x2(), ray.y2(), px1, py1);
+					rasterLine(bits, stride, imgW, imgH, px0, py0, px1, py1, rayColor);
+				}
+			});
+		}
+		for (auto &th : threads) th.join();
+	}
+
+	// ---- Reflector ----
+	uint32_t refColor = 0xFFC4C4C4;
+	const auto &segs = mirror.getSegments();
+	for (const auto &seg : segs) {
+		int px0, py0, px1, py1;
+		worldToPixel(seg.x1(), seg.y1(), px0, py0);
+		worldToPixel(seg.x2(), seg.y2(), px1, py1);
+		rasterLine(bits, stride, imgW, imgH, px0, py0, px1, py1, refColor);
+	}
+
+	// ---- Receiver ----
+	if (Receiver_Enabled) {
+		if (sink.getShape() == CIRCLE) {
+			int cx, cy;
+			worldToPixel(sink.getCenterXRaw(), sink.getCenterYRaw(), cx, cy);
+			int rx, dummy;
+			worldToPixel(sink.getCenterXRaw() + sink.getSizeRaw(), sink.getCenterYRaw(), rx, dummy);
+			int r = std::abs(rx - cx);
+			if (r > 0)
+				rasterFilledCircle(bits, stride, imgW, imgH, cx, cy, r, 0xFF333366, 0xFFFFFFFF);
+		} else { // LINE
+			const QLineF &panel = sink.getPanel();
+			int px0, py0, px1, py1;
+			worldToPixel(panel.x1(), panel.y1(), px0, py0);
+			worldToPixel(panel.x2(), panel.y2(), px1, py1);
+			rasterLine(bits, stride, imgW, imgH, px0, py0, px1, py1, 0xFFFFFFFF);
+		}
+	}
 }
 
 void Bench::setLights() {
@@ -349,6 +494,10 @@ void Bench::runSimulation() {
 	}
 	sink.set_hits(totalHits);
 	simMs = perfTimer.nsecsElapsed() / 1e6;
+
+	perfTimer.start();
+	renderFrame();
+	paintMs = perfTimer.nsecsElapsed() / 1e6;
 
 	if(Receiver_Enabled) {
 		emit hitsChanged( getWatts() );

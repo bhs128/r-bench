@@ -56,6 +56,7 @@ public:
 	void reset_hits();
 	void got_hit();
 	int get_hits();
+	const QVector<QLineF>& getSegments() const { return segments; }
 	
 private:
 	double func(double x); // in subunits

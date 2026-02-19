@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <QTimer>
 #include <QElapsedTimer>
 #include <cmath>
+#include <cstdint>
 #include <thread>
 #include <vector>
 
@@ -81,11 +82,15 @@ protected:
 private:
 	void setLights();
 	void bounce(QLineF *a_ray, QVector<QLineF> &localFinal, int &localHits);	
-	void drawGrid(QPainter *painter);
-    void drawRays(QPainter *painter);
 	void drawFps(QPainter *painter);
+	void renderFrame();
 	void runSimulation();
 	void calculateWindow();
+	void worldToPixel(double wx, double wy, int &px, int &py) const;
+	static void rasterLine(uint32_t *bits, int stride, int imgW, int imgH,
+	                       int x0, int y0, int x1, int y1, uint32_t color);
+	static void rasterFilledCircle(uint32_t *bits, int stride, int imgW, int imgH,
+	                               int cx, int cy, int r, uint32_t fill, uint32_t stroke);
 	void scheduleUpdate();
 	double getWatts();
 	
@@ -94,6 +99,7 @@ private:
 	Receiver sink;
 	QVector<QLineF> InitialRays;
 	QVector<QLineF> FinalRays;
+	QImage frameBuffer;
 	
 	float w_right, w_left, w_top, w_bottom, w_width, w_height;
 	float px_per_unit;
