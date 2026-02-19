@@ -247,8 +247,13 @@ function recCircleIntersects(ray, cx, cy, size) {
     if (x1 < cx - size || x1 > cx + size) return false;
     return (y1 > cy + size && y2 < cy - size) || (y2 > cy + size && y1 < cy - size);
   }
+  // Directional early-outs: circle must be in the ray's travel direction
+  if (x1 < x2 && cx < x1 - size) return false;
+  if (x1 > x2 && cx > x1 + size) return false;
+  if (y1 < y2 && cy < y1 - size) return false;
+  if (y1 > y2 && cy > y1 + size) return false;
   // Translate
-  const lx1 = x1 - cx, lx2 = x2 - cx, ly1 = y1 - cy, ly2 = y2 - cy;
+  const lx1 = x1 - cx, ly1 = y1 - cy;
   const slope = (ray[3] - ray[1]) / (ray[2] - ray[0]);
   const b = -slope * lx1 + ly1;
   const disc = size * size - b * b + slope * slope * size * size;
@@ -262,8 +267,16 @@ function recCircleCoord(ray, cx, cy, size) {
   const m = (ray[3] - ray[1]) / (ray[2] - ray[0]);
   const b = -m * lx1 + ly1;
   const disc = size * size - b * b + m * m * size * size;
-  const ix = (-m * b + Math.sqrt(disc)) / (1 + m * m);
-  return [ix + cx, m * ix + b + cy];
+  const sqrtD = Math.sqrt(disc);
+  const denom = 1 + m * m;
+  const ix1 = (-m * b + sqrtD) / denom;
+  const ix2 = (-m * b - sqrtD) / denom;
+  // Pick the intersection closest to ray origin
+  const wx1 = ix1 + cx, wy1 = m * ix1 + b + cy;
+  const wx2 = ix2 + cx, wy2 = m * ix2 + b + cy;
+  const d1 = (wx1 - x1) ** 2 + (wy1 - y1) ** 2;
+  const d2 = (wx2 - x1) ** 2 + (wy2 - y1) ** 2;
+  return d1 < d2 ? [wx1, wy1] : [wx2, wy2];
 }
 
 // ===== Bounce =====
