@@ -44,3 +44,9 @@ make
 ## Technology
 
 Built with Qt6 (originally Qt4, ported 2026).
+
+## Downloads
+
+Pre-built binaries for Windows, macOS, and Linux are available on the [Releases](https://github.com/bhs128/r-bench/releases) page.
+
+The Windows release includes all required Qt DLLs — no installation needed, just unzip and run.

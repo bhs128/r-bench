@@ -1,0 +1,127 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: Linux
+            artifact: r-bench-linux
+          - os: windows-latest
+            name: Windows
+            artifact: r-bench-windows
+          - os: macos-latest
+            name: macOS
+            artifact: r-bench-macos
+
+    runs-on: ${{ matrix.os }}
+    name: Build (${{ matrix.name }})
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.*'
+          cache: true
+
+      - name: Build (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          qmake r-bench.pro
+          make -j$(nproc 2>/dev/null || sysctl -n hw.logicalcpu)
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          call "%QT_ROOT_DIR%\bin\qt-cmake-private.bat" --version >nul 2>&1
+          qmake r-bench.pro
+          nmake
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p package
+          cp r-bench package/
+          cp README.md LICENSE 2>/dev/null || cp README.md package/
+          cp gplv2.txt package/ 2>/dev/null || true
+          cd package && tar czf ../r-bench-linux.tar.gz .
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p package
+          cp r-bench package/
+          cp README.md package/
+          cp gplv2.txt package/ 2>/dev/null || true
+          cd package && tar czf ../r-bench-macos.tar.gz .
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          mkdir package
+          copy release\r-bench.exe package\
+          copy README.md package\
+          if exist gplv2.txt copy gplv2.txt package\
+          cd package
+          windeployqt --release --no-translations --no-opengl-sw r-bench.exe
+
+      - name: Upload artifact (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: r-bench-linux.tar.gz
+
+      - name: Upload artifact (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: r-bench-macos.tar.gz
+
+      - name: Upload artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: package/
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Package Windows zip
+        run: |
+          cd artifacts/r-bench-windows
+          zip -r ../../r-bench-windows.zip .
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/r-bench-linux/r-bench-linux.tar.gz
+            artifacts/r-bench-macos/r-bench-macos.tar.gz
+            r-bench-windows.zip
