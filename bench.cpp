@@ -23,47 +23,67 @@ Bench::Bench(QWidget *parent)
 	: QWidget(parent), mirror(0.25, -2.0, 2.0), sink(0.0, 1.0, 0.25) 
 	{
 	setAttribute(Qt::WA_OpaquePaintEvent);
+	setMouseTracking(false); // only track when button is held (default)
 	w_right = 3.0 * SCALER;
 	w_left = -3.0 * SCALER;
 	subunits_per_px = (6.0 * SCALER) / 400.0;
 	RaySpacing = .125  * SCALER;
 	Receiver_Enabled = false;
 	watts_per_unit_2  = 92.90304;
+	lightsDirty = false;
+	simDirty = false;
+	updateTimer.setSingleShot(true);
+	updateTimer.setInterval(16); // ~60fps cap
+	connect(&updateTimer, &QTimer::timeout, this, [this]() {
+		if (lightsDirty) {
+			lightsDirty = false;
+			setLights(); // setLights calls runSimulation
+		} else if (simDirty) {
+			simDirty = false;
+			runSimulation();
+		}
+	});
 }
 
 void Bench::setTheta(int t) {
 	Theta = (double) t;
-	setLights();
+	lightsDirty = true;
+	scheduleUpdate();
 }
 void Bench::setParabola(bool) {
 	mirror.setShape(PARA);
-	runSimulation();	
+	simDirty = true;
+	scheduleUpdate();
 }
 
 void Bench::setCatenary(bool) {
 	mirror.setShape(CAT);
-	runSimulation();
+	simDirty = true;
+	scheduleUpdate();
 }
 
 void Bench::setSemi(bool) {
 	mirror.setShape(SEMI);
-	runSimulation();
+	simDirty = true;
+	scheduleUpdate();
 }
 
 void Bench::setPanel(bool) {
 	sink.setShape(LINE);
-	runSimulation();
+	simDirty = true;
+	scheduleUpdate();
 }
 
 void Bench::setPipe(bool) {
 	sink.setShape(CIRCLE);
-	runSimulation();
+	simDirty = true;
+	scheduleUpdate();
 }
 
 void Bench::setRaySpacing(int s) {
-	RaySpacing = (double) (s / 100.0) * SCALER;
-	emit spacingChanged((double) (s / 100.0) );
-	setLights();
+	RaySpacing = s * RAY_WIDTH;
+	lightsDirty = true;
+	scheduleUpdate();
 }
 
 void Bench::setReceiverEnabled(int state) {
@@ -73,36 +93,38 @@ void Bench::setReceiverEnabled(int state) {
 		Receiver_Enabled = false;
 		hitsChanged(0.0);
 	}
-	runSimulation();	
+	simDirty = true;
+	scheduleUpdate();
 }
 	
 void Bench::setReflectorMin(double min) {
 	mirror.setFmin(min);
 	calculateWindow();
-	runSimulation();
 }
 
-void Bench::setReflectorMax(double max) { // slider widget only uses int's - max is in hundredths
+void Bench::setReflectorMax(double max) {
 	mirror.setFmax(max);
 	calculateWindow();
-	runSimulation();
 }
 	
-void Bench::setAlpha(int alpha) { // slider widget only uses int's - alpha is in hundredths
+void Bench::setAlpha(int alpha) {
 	mirror.setAlpha((double) alpha / 100.0);
 	emit alphaChanged((double) alpha / 100.0);
-	runSimulation();
+	simDirty = true;
+	scheduleUpdate();
 }
 
 void Bench::setSize(int r) {
 	sink.setSize((double) r / 100.0);
 	emit radiusChanged((double) r / 100.0);
-	runSimulation();
+	simDirty = true;
+	scheduleUpdate();
 }
 
 void Bench::setAngle(int a) {
 	sink.setAngle(a);
-	runSimulation();
+	simDirty = true;
+	scheduleUpdate();
 }
 void Bench::setUnits(int u) {
 	switch(u) {
@@ -122,15 +144,26 @@ void Bench::setUnits(int u) {
 }
 
 void Bench::mousePressEvent(QMouseEvent *event) {
-	QPointF pos;
-	
-    pos = event->position();
-	sink.setCenter(pos.x() * subunits_per_px + w_left, 
-				   (pos.y() * subunits_per_px - w_top) * -1.0);
-	runSimulation();
+	if (event->button() == Qt::LeftButton) {
+		QPointF pos = event->position();
+		sink.setCenter(pos.x() * subunits_per_px + w_left, 
+					   (pos.y() * subunits_per_px - w_top) * -1.0);
+		simDirty = true;
+		scheduleUpdate();
+	}
 }
 
-void Bench::resizeEvent ( QResizeEvent * event ) {
+void Bench::mouseMoveEvent(QMouseEvent *event) {
+	if (event->buttons() & Qt::LeftButton) {
+		QPointF pos = event->position();
+		sink.setCenter(pos.x() * subunits_per_px + w_left, 
+					   (pos.y() * subunits_per_px - w_top) * -1.0);
+		simDirty = true;
+		scheduleUpdate();
+	}
+}
+
+void Bench::resizeEvent ( QResizeEvent * ) {
 	calculateWindow();
 }
 
@@ -149,15 +182,21 @@ void Bench::calculateWindow() {
 	
 	window = QRect( (int) w_left, (int) (-1 * w_top), (int) w_width, (int) w_height);
 	
-	setLights();
+	lightsDirty = true;
+	scheduleUpdate();
 }
 
-void Bench::paintEvent(QPaintEvent *event) {
+void Bench::scheduleUpdate() {
+	if (!updateTimer.isActive()) {
+		updateTimer.start();
+	}
+}
+
+void Bench::paintEvent(QPaintEvent *) {
 	QTransform reflectionMatrix(1, 0, 0, -1, 0.0, 0.0); // Defines a reflection over the x-axis
     QPainter painter(this);
 	painter.setTransform(reflectionMatrix);
-    painter.setRenderHint(QPainter::Antialiasing, true);
-    painter.setWindow(window); // in case a resizeEvent updated it 
+    painter.setWindow(window);
 	
 	drawGrid(&painter);	
     drawRays(&painter);
@@ -175,7 +214,7 @@ void Bench::drawRays(QPainter *painter) {
 	
     QColor niceOrange(255,128,0, 128);
     QPen orangePen(niceOrange);
-    orangePen.setWidthF(6);
+    orangePen.setWidthF(RAY_WIDTH);
     painter->setPen(orangePen);
 	
 	painter->drawLines(FinalRays);

@@ -24,7 +24,7 @@ Reflector::Reflector(double A, double minimum, double maximum) {
 	x_min = minimum * SCALER;
 	x_max = maximum * SCALER;
 	range = x_max - x_min;
-	res = 1000;
+	res = 200;
 	shape = CAT;
 	rebuildPolyline();
 }

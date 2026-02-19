@@ -38,7 +38,6 @@ int main(int argc, char *argv[])
     window->setWindowTitle(QObject::tr("R-Bench"));
 	
 	Bench *b = new Bench();
-	b->setRaySpacing(125);
 	
 	QHBoxLayout *outerLayout = new QHBoxLayout;
 	QVBoxLayout *sidebarLayout = new QVBoxLayout;	
@@ -65,15 +64,15 @@ int main(int argc, char *argv[])
 	
 	QHBoxLayout *slayout = new QHBoxLayout;
 	QLabel *slabel = new QLabel("Spacing:");
-	QLabel *svalue = new QLabel("0.25");
+	QLabel *svalue = new QLabel("5");
 	svalue->setFixedWidth(30);
 	QSlider *sSlider = new QSlider(Qt::Horizontal);
-	sSlider->setRange(1,50);
+	sSlider->setRange(1,20);
 	QObject::connect(sSlider, SIGNAL(valueChanged(int)), 
 					b, SLOT(setRaySpacing(int)) );
-	QObject::connect(b, SIGNAL(spacingChanged(double)), 
-					 svalue, SLOT(setNum(double)) );
-	sSlider->setValue(10);
+	QObject::connect(sSlider, SIGNAL(valueChanged(int)), 
+					 svalue, SLOT(setNum(int)) );
+	sSlider->setValue(5);
 	slayout->addWidget(slabel);
 	slayout->addWidget(sSlider);
 	slayout->addWidget(svalue);
@@ -207,7 +206,7 @@ int main(int argc, char *argv[])
 	QLabel *mlabel = new QLabel("watts/unit");
 	QObject::connect(b, SIGNAL(hitsChanged(double)), 
 					 hit_value, SLOT(setNum(double)) );
-	hit_value->setFixedWidth(30);
+	hit_value->setMinimumWidth(50);
 	hit_layout->addWidget(hit_label);
 	hit_layout->addWidget(hit_value);
 	hit_layout->addWidget(mlabel);

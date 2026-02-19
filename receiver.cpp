@@ -132,8 +132,7 @@ QPointF Receiver::intersection_coord(const QLineF *a_ray) {
 	}
 
 	double x1, y1, x2, y2; 
-	double int1_x; //, int1_y;
-	double int2_x; //, int2_y;
+	double int1_x;
 	
 	if(std::abs(a_ray->x1() - a_ray->x2()) < 0.001) {
 		return QPointF(a_ray->x1(), center_y); 
@@ -154,7 +153,6 @@ QPointF Receiver::intersection_coord(const QLineF *a_ray) {
 	double b = m * -1 * x1 + y1;
 	double disc = (size*size)-(b*b)+(m*m)*(size*size);
 	int1_x = (-1*m*b+std::sqrt((float) disc))/(1+m*m);
-	int2_x = (-1*m*b-std::sqrt((float) disc))/(1+m*m);
 	
 	return QPointF(int1_x+center_x, m*int1_x+b+center_y);  
 }

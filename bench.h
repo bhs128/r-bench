@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <QLineF>
 #include <QVector>
 #include <QRect>
+#include <QTimer>
 #include <cmath>
 
 #ifndef M_PI
@@ -35,6 +36,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "receiver.h"
 
 #define SCALER 1024
+#define RAY_WIDTH 6.0
 
 class Bench : public QWidget {
     Q_OBJECT
@@ -43,8 +45,6 @@ public:
     Bench(QWidget *parent = 0);
 	
 signals:
-	void spacingChanged(double a);
-
  	void alphaChanged(double a); 
 
 	void hitsChanged(double a); 
@@ -72,6 +72,7 @@ public slots:
 protected:
     void paintEvent(QPaintEvent *event);
     void mousePressEvent(QMouseEvent *event);
+    void mouseMoveEvent(QMouseEvent *event);
 	void resizeEvent(QResizeEvent * event);
 
 private:
@@ -81,6 +82,7 @@ private:
     void drawRays(QPainter *painter);
 	void runSimulation();
 	void calculateWindow();
+	void scheduleUpdate();
 	double getWatts();
 	
 	QRect  window;
@@ -96,6 +98,9 @@ private:
 	bool  Receiver_Enabled;
 	double 	RaySpacing;
 	double	Theta; // In degrees
+	QTimer updateTimer;
+	bool lightsDirty;
+	bool simDirty;
 
 };
 
