@@ -40,6 +40,7 @@ public:
 	Receiver(double x, double y, double r);
 	void reset_hits();
 	void got_hit();
+	void set_hits(int h);
 	int get_hits();
 	void setSize(double s);
 	void setAngle(int a);

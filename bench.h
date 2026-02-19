@@ -27,6 +27,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <QRect>
 #include <QTimer>
 #include <cmath>
+#include <thread>
+#include <vector>
 
 #ifndef M_PI
 #define M_PI 3.14159265359
@@ -77,7 +79,7 @@ protected:
 
 private:
 	void setLights();
-	void bounce(QLineF *a_ray);	
+	void bounce(QLineF *a_ray, QVector<QLineF> &localFinal, int &localHits);	
 	void drawGrid(QPainter *painter);
     void drawRays(QPainter *painter);
 	void runSimulation();

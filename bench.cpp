@@ -284,25 +284,52 @@ void Bench::setLights() {
 }
 
 void Bench::runSimulation() {
-	FinalRays.resize(0);  // reset array to null
+	const int numRays = InitialRays.size();
+	const int numThreads = std::max(1, (int)std::thread::hardware_concurrency());
+	const int chunkSize = (numRays + numThreads - 1) / numThreads;
+
+	// Per-thread output buffers
+	std::vector<QVector<QLineF>> threadPrimary(numThreads);
+	std::vector<QVector<QLineF>> threadBounced(numThreads);
+	std::vector<int> threadHits(numThreads, 0);
+
+	std::vector<std::thread> threads;
+	for (int t = 0; t < numThreads; ++t) {
+		int start = t * chunkSize;
+		int end = std::min(start + chunkSize, numRays);
+		if (start >= end) break;
+		threads.emplace_back([&, t, start, end]() {
+			int localHits = 0;
+			for (int ridx = start; ridx < end; ++ridx) {
+				QLineF tmp(InitialRays[ridx]);
+				bounce(&tmp, threadBounced[t], localHits);
+				threadPrimary[t].append(tmp);
+			}
+			threadHits[t] = localHits;
+		});
+	}
+	for (auto &th : threads) th.join();
+
+	// Merge results
+	FinalRays.resize(0);
 	sink.reset_hits();
 	mirror.reset_hits();
-	for(int ridx = 0; ridx < InitialRays.size(); ridx++) {
-		QLineF tmp(InitialRays[ridx]); // copy constructor
-		bounce( &tmp ); 
-			
-		FinalRays.append(tmp);  // note- every input ray ends up in output array
+	int totalHits = 0;
+	for (int t = 0; t < (int)threads.size(); ++t) {
+		FinalRays.append(threadPrimary[t]);
+		FinalRays.append(threadBounced[t]);
+		totalHits += threadHits[t];
 	}
+	sink.set_hits(totalHits);
+
 	if(Receiver_Enabled) {
 		emit hitsChanged( getWatts() );
 	}
-	update(); // schedule a repaint of new rays
-	
+	update();
 }
 
-void Bench::bounce(QLineF *a_ray) {
+void Bench::bounce(QLineF *a_ray, QVector<QLineF> &localFinal, int &localHits) {
 	QLineF temp;
-	QPointF pivot;
 	QPointF pi, ri; // pipe intersection, & reflector intersection
 	bool go_reflect = false;
 	bool go_receive = false;
@@ -329,7 +356,7 @@ void Bench::bounce(QLineF *a_ray) {
 	if(go_receive) {
 		// Ray stops at receiver
 		a_ray->setP2(pi);
-		sink.got_hit();
+		localHits++;
 	}
 	
 	if(go_reflect) {
@@ -337,8 +364,8 @@ void Bench::bounce(QLineF *a_ray) {
 		a_ray->setP2(ri);
 		temp.setP1(ri);
 		
-		bounce(&temp);
+		bounce(&temp, localFinal, localHits);
 	
-		FinalRays.append(temp);
+		localFinal.append(temp);
 	}
 }

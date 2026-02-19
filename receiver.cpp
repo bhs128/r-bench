@@ -36,6 +36,10 @@ void Receiver::got_hit() {
 	hits++;
 }
 
+void Receiver::set_hits(int h) {
+	hits = h;
+}
+
 int Receiver::get_hits() {
 	return hits;
 }
