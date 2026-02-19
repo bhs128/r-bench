@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <QVector>
 #include <QRect>
 #include <QTimer>
+#include <QElapsedTimer>
 #include <cmath>
 #include <thread>
 #include <vector>
@@ -82,6 +83,7 @@ private:
 	void bounce(QLineF *a_ray, QVector<QLineF> &localFinal, int &localHits);	
 	void drawGrid(QPainter *painter);
     void drawRays(QPainter *painter);
+	void drawFps(QPainter *painter);
 	void runSimulation();
 	void calculateWindow();
 	void scheduleUpdate();
@@ -103,6 +105,13 @@ private:
 	QTimer updateTimer;
 	bool lightsDirty;
 	bool simDirty;
+
+	// FPS tracking
+	QElapsedTimer fpsTimer;
+	int frameCount;
+	double currentFps;
+
+	int numThreads;
 
 };
 

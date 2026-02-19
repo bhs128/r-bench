@@ -32,6 +32,10 @@ Bench::Bench(QWidget *parent)
 	watts_per_unit_2  = 92.90304;
 	lightsDirty = false;
 	simDirty = false;
+	frameCount = 0;
+	currentFps = 0.0;
+	numThreads = std::max(1, (int)std::thread::hardware_concurrency());
+	fpsTimer.start();
 	updateTimer.setSingleShot(true);
 	updateTimer.setInterval(16); // ~60fps cap
 	connect(&updateTimer, &QTimer::timeout, this, [this]() {
@@ -193,6 +197,15 @@ void Bench::scheduleUpdate() {
 }
 
 void Bench::paintEvent(QPaintEvent *) {
+	// FPS tracking
+	frameCount++;
+	qint64 elapsed = fpsTimer.elapsed();
+	if (elapsed >= 500) {
+		currentFps = frameCount * 1000.0 / elapsed;
+		frameCount = 0;
+		fpsTimer.restart();
+	}
+
 	QTransform reflectionMatrix(1, 0, 0, -1, 0.0, 0.0); // Defines a reflection over the x-axis
     QPainter painter(this);
 	painter.setTransform(reflectionMatrix);
@@ -203,6 +216,22 @@ void Bench::paintEvent(QPaintEvent *) {
 	mirror.draw(&painter);
 	if(Receiver_Enabled) 
 		sink.draw(&painter);
+	
+	drawFps(&painter);
+}
+
+void Bench::drawFps(QPainter *painter) {
+	painter->resetTransform();
+	painter->setWindow(rect());
+	QFont font;
+	font.setPixelSize(12);
+	painter->setFont(font);
+	painter->setPen(QColor(0, 255, 0));
+	QString fpsText = QString("%1 fps | %2 rays | %3 threads")
+		.arg(currentFps, 0, 'f', 1)
+		.arg(FinalRays.size())
+		.arg(numThreads);
+	painter->drawText(6, 16, fpsText);
 }
 
 void Bench::drawRays(QPainter *painter) {
@@ -285,7 +314,6 @@ void Bench::setLights() {
 
 void Bench::runSimulation() {
 	const int numRays = InitialRays.size();
-	const int numThreads = std::max(1, (int)std::thread::hardware_concurrency());
 	const int chunkSize = (numRays + numThreads - 1) / numThreads;
 
 	// Per-thread output buffers
