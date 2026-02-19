@@ -34,6 +34,8 @@ Bench::Bench(QWidget *parent)
 	simDirty = false;
 	frameCount = 0;
 	currentFps = 0.0;
+	simMs = 0.0;
+	paintMs = 0.0;
 	numThreads = std::max(1, (int)std::thread::hardware_concurrency());
 	fpsTimer.start();
 	updateTimer.setSingleShot(true);
@@ -197,6 +199,7 @@ void Bench::scheduleUpdate() {
 }
 
 void Bench::paintEvent(QPaintEvent *) {
+	perfTimer.start();
 	// FPS tracking
 	frameCount++;
 	qint64 elapsed = fpsTimer.elapsed();
@@ -217,6 +220,7 @@ void Bench::paintEvent(QPaintEvent *) {
 	if(Receiver_Enabled) 
 		sink.draw(&painter);
 	
+	paintMs = perfTimer.nsecsElapsed() / 1e6;
 	drawFps(&painter);
 }
 
@@ -227,25 +231,19 @@ void Bench::drawFps(QPainter *painter) {
 	font.setPixelSize(12);
 	painter->setFont(font);
 	painter->setPen(QColor(0, 255, 0));
-	QString fpsText = QString("%1 fps | %2 rays | %3 threads")
+	QString fpsText = QString("%1 fps | %2 rays | sim %3ms | paint %4ms")
 		.arg(currentFps, 0, 'f', 1)
 		.arg(FinalRays.size())
-		.arg(numThreads);
+		.arg(simMs, 0, 'f', 1)
+		.arg(paintMs, 0, 'f', 1);
 	painter->drawText(6, 16, fpsText);
 }
 
 void Bench::drawRays(QPainter *painter) {
-    QColor niceYellow(255,255,0, 128);
-    QPen yellowPen(niceYellow);
-    painter->setPen(yellowPen);
-
-	//painter->drawLines(InitialRays);
-	
-    QColor niceOrange(255,128,0, 128);
-    QPen orangePen(niceOrange);
-    orangePen.setWidthF(RAY_WIDTH);
-    painter->setPen(orangePen);
-	
+    QPen rayPen(QColor(255, 128, 0));
+    rayPen.setCosmetic(true);
+    rayPen.setWidth(1);
+    painter->setPen(rayPen);
 	painter->drawLines(FinalRays);
 }
 
@@ -255,24 +253,24 @@ double Bench::getWatts() {
 }
 
 void Bench::drawGrid(QPainter *painter) {
-	QColor darkGrey(64,64,64,128);
-    QPen   gridPen(darkGrey);
+    QPen gridPen(QColor(64,64,64));
+    gridPen.setCosmetic(true);
+    gridPen.setWidth(1);
 	
 	painter->fillRect( (int) w_left, (int) w_bottom, (int) w_width, (int) w_height, QColor(0,0,0)); 
 	painter->setPen(gridPen);
-	// Horizontal grid lines
-	for(int y=0; y<w_top; y+=SCALER) {
-		painter->drawLine( QLineF(w_left, (float) y, w_right, (float) y) );
-		painter->drawLine( QLineF(w_left, (float) y * -1.0, w_right, (float) y * -1.0) );
-	}
-	// Vertical grid lines
-	for(int x=0; x<w_right; x+=SCALER)
-		painter->drawLine( QLineF((float) x, w_top, (float) x, w_bottom) );
-		
-	for(int x=0; x>w_left; x-=SCALER) 
-		painter->drawLine( QLineF((float) x, w_top, (float) x, w_bottom) );
 
-	
+	// Batch grid lines
+	QVector<QLineF> gridLines;
+	for(int y=0; y<w_top; y+=SCALER) {
+		gridLines.append(QLineF(w_left, (float) y, w_right, (float) y));
+		gridLines.append(QLineF(w_left, (float) y * -1.0, w_right, (float) y * -1.0));
+	}
+	for(int x=0; x<w_right; x+=SCALER)
+		gridLines.append(QLineF((float) x, w_top, (float) x, w_bottom));
+	for(int x=0; x>w_left; x-=SCALER)
+		gridLines.append(QLineF((float) x, w_top, (float) x, w_bottom));
+	painter->drawLines(gridLines);
 }
 
 void Bench::setLights() {
@@ -313,6 +311,7 @@ void Bench::setLights() {
 }
 
 void Bench::runSimulation() {
+	perfTimer.start();
 	const int numRays = InitialRays.size();
 	const int chunkSize = (numRays + numThreads - 1) / numThreads;
 
@@ -349,6 +348,7 @@ void Bench::runSimulation() {
 		totalHits += threadHits[t];
 	}
 	sink.set_hits(totalHits);
+	simMs = perfTimer.nsecsElapsed() / 1e6;
 
 	if(Receiver_Enabled) {
 		emit hitsChanged( getWatts() );

@@ -108,8 +108,11 @@ private:
 
 	// FPS tracking
 	QElapsedTimer fpsTimer;
+	QElapsedTimer perfTimer;
 	int frameCount;
 	double currentFps;
+	double simMs;
+	double paintMs;
 
 	int numThreads;
 
