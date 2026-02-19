@@ -153,7 +153,7 @@ void Bench::setUnits(int u) {
 			watts_per_unit_2 = 1000.0; //meters
 			break;
 		case 2:
-			watts_per_unit_2 = 0.64516; //meters	
+			watts_per_unit_2 = 0.64516; //inches
 			break;
 	}
 	if(Receiver_Enabled) {

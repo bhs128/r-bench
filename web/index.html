@@ -108,7 +108,11 @@ select { background: #2d2d2d; color: #d4d4d4; border: 1px solid #555; border-rad
       <div class="info-row">
         <span>Power:</span>
         <span id="power-val">0</span>
-        <span>watts/unit</span>
+        <span id="power-unit">W/ft</span>
+      </div>
+      <div class="info-row">
+        <span>Multiplier:</span>
+        <span id="multiplier-val">1.00x</span>
       </div>
       <div class="info-row">
         <span>1 unit =</span>
@@ -117,6 +121,16 @@ select { background: #2d2d2d; color: #d4d4d4; border: 1px solid #555; border-rad
           <option value="m">1 Meter</option>
           <option value="in">1 Inch</option>
         </select>
+      </div>
+      <div class="row">
+        <label for="trough-len">Length:</label>
+        <input type="number" id="trough-len" value="1" min="0.01" step="0.1" style="width:56px">
+        <span class="val" id="trough-unit">ft</span>
+      </div>
+      <div class="info-row">
+        <span>Total:</span>
+        <span id="total-power-val">0</span>
+        <span>W</span>
       </div>
     </fieldset>
   </div>
@@ -328,6 +342,7 @@ let state = {
   recEnabled: true, recShape: REC_CIRCLE, recSize: 0.25, recAngle: 180,
   recCX: 0, recCY: 1.0,
   wattsPerUnit2: 92.90304,
+  unitSuffix: 'ft', troughLength: 1,
 };
 
 // Viewport (calculated)
@@ -540,8 +555,26 @@ function drawFrame(sim, bw, bh) {
 
   // Power readout
   if (state.recEnabled) {
-    const watts = state.wattsPerUnit2 * sim.totalHits * (state.spacing * RAY_WIDTH) / SCALER;
+    const rayWidth = state.spacing * RAY_WIDTH / SCALER; // world units per ray
+    const watts = state.wattsPerUnit2 * sim.totalHits * rayWidth;
     document.getElementById("power-val").textContent = (Math.floor(watts * 10) / 10).toFixed(1);
+
+    // Multiplier: compare to what receiver would catch without reflector
+    const thetaRad = state.theta * DEG2RAD;
+    let directWidth; // receiver projected width in world units, perpendicular to sun
+    if (state.recShape === REC_CIRCLE) {
+      directWidth = 2 * state.recSize; // circle diameter, same from any angle
+    } else {
+      // Line: projected width = length × |sin(sun_angle - panel_angle)|
+      directWidth = 2 * state.recSize * Math.abs(Math.sin(thetaRad - state.recAngle * DEG2RAD));
+    }
+    const directPower = state.wattsPerUnit2 * directWidth;
+    const multiplier = directPower > 0.001 ? watts / directPower : 0;
+    document.getElementById("multiplier-val").textContent = multiplier.toFixed(2) + "x";
+
+    // Total power with trough length
+    const totalW = watts * state.troughLength;
+    document.getElementById("total-power-val").textContent = totalW < 1000 ? totalW.toFixed(1) : (totalW / 1000).toFixed(2) + "k";
   }
 }
 
@@ -589,7 +622,16 @@ document.getElementById("rec-enable").addEventListener("change", e => {
 });
 
 document.getElementById("units").addEventListener("change", e => {
-  state.wattsPerUnit2 = { ft: 92.90304, m: 1000.0, "in": 0.64516 }[e.target.value];
+  const unit = e.target.value;
+  state.wattsPerUnit2 = { ft: 92.90304, m: 1000.0, "in": 0.64516 }[unit];
+  state.unitSuffix = unit;
+  document.getElementById("power-unit").textContent = "W/" + unit;
+  document.getElementById("trough-unit").textContent = unit;
+  markDirty();
+});
+
+document.getElementById("trough-len").addEventListener("input", e => {
+  state.troughLength = Math.max(0.01, Number(e.target.value) || 1);
   markDirty();
 });
 
