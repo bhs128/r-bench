@@ -35,6 +35,10 @@ jobs:
           version: '6.7.*'
           cache: true
 
+      - name: Setup MSVC
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Build (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
@@ -45,7 +49,6 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         run: |
-          call "%QT_ROOT_DIR%\bin\qt-cmake-private.bat" --version >nul 2>&1
           qmake r-bench.pro
           nmake
 
@@ -62,7 +65,12 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           mkdir -p package
-          cp r-bench package/
+          if [ -d r-bench.app ]; then
+            cp -R r-bench.app package/
+            macdeployqt package/r-bench.app
+          else
+            cp r-bench package/
+          fi
           cp README.md package/
           cp gplv2.txt package/ 2>/dev/null || true
           cd package && tar czf ../r-bench-macos.tar.gz .
